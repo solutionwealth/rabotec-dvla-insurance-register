@@ -9,8 +9,10 @@ export default function StaffLogin({ configured }: { configured: boolean }) {
     event.preventDefault(); setBusy(true); setError('');
     try {
       const response = await fetch('/api/staff-session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
-      const result = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(result.error || 'Sign in failed.');
+      const reply = await response.text();
+      let result: { error?: string } = {};
+      try { result = JSON.parse(reply) as { error?: string }; } catch { /* Hosting errors may not return JSON. */ }
+      if (!response.ok) throw new Error(result.error || 'The tracker could not check the password. Please try again.');
       window.location.reload();
     } catch (failure) { setError((failure as Error).message); setBusy(false); }
   }
