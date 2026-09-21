@@ -11,7 +11,7 @@ Responsive vehicle roadworthy certificate and insurance tracking application.
 - Read-only sample fleet is separate from real records.
 
 ## Operations
-The Sites access policy controls authorized viewers. Initially the deployment is owner-private. Invite approved staff through Sites sharing before department rollout; application users admitted by that policy have the same editing access. Do not make this fleet public. There are no administrator/viewer roles inside the application.
+The site uses a server-checked shared staff password. Configure `FLEET_ACCESS_PASSWORD_HASH` as `<32 lowercase hex salt>:<64 lowercase hex PBKDF2-SHA256 result>` with 210,000 iterations and `FLEET_SESSION_SECRET` as a separate high-entropy secret. Store both as hosting secrets, never in the repository. Without them the tracker stays locked. A successful login creates a signed, HTTP-only, Secure, SameSite=Lax cookie valid for seven days. The vehicle API checks that cookie on every request. Sharing the site URL alone does not grant access. Anyone with the staff password can view and edit all records; there are no individual roles, and the audit records these edits as “Staff access.” Rotate the password and session secret if a recipient should lose access.
 
 Dates use UTC (Ghana). Expiry day remains current and is included in the renewal queue. Status priority is expired, missing, due within 30 days, then valid. Coverage includes unexpired documents due soon. Metrics assess recorded dates, not independent verification of document authenticity or legal compliance.
 
