@@ -502,7 +502,7 @@ async function api(action, payload){
   const s=state.session||{};
   let res;
   try{
-    res = await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,token:s.token,...(payload||{})}),redirect:"follow"});
+    res = await fetch(API_URL,{method:"POST",credentials:"omit",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,token:s.token,...(payload||{})}),redirect:"follow"});
   }catch(e){ const err=new Error("Can't reach the register. Check the network connection and try again."); err.code="network"; throw err; }
   let out; try{ out=await res.json(); }catch(e){ const err=new Error("The register sent back an unexpected reply. Check the Apps Script deployment."); err.code="network"; throw err; }
   if(!out.ok){ const err=new Error(out.error||"Something went wrong."); err.code=out.code; if(out.code==="auth"&&state.session) signOut(true); throw err; }

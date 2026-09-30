@@ -54,7 +54,7 @@ const OPS = ['Active','Under maintenance','Grounded'];
 const ROLES = ['admin','editor','viewer'];
 const ACTIVITY_RETURNED = 500;
 const WINDOW_DAYS = 30;
-const HASH_ROUNDS = 800;
+const HASH_ROUNDS = 300;
 const MAX_FAILED = 5;
 const LOCK_MINUTES = 15;
 const CODE_MINUTES = 15;
@@ -245,11 +245,13 @@ function login_(rawEmail, password) {
 }
 
 /* Session token: email|passwordVersion|expiry|signature (HMAC with a secret kept in Script Properties). */
+let SECRET_ = null;
 function secret_() {
+  if (SECRET_) return SECRET_;
   const p = PropertiesService.getScriptProperties();
   let s = p.getProperty('SESSION_SECRET');
   if (!s) { s = newSalt_() + newSalt_(); p.setProperty('SESSION_SECRET', s); }
-  return s;
+  return (SECRET_ = s);
 }
 function sign_(payload) { return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(payload, secret_())); }
 function token_(u) {
@@ -484,16 +486,20 @@ function setup() {
 }
 
 /* ---------------- helpers ---------------- */
+// Opened once per request and reused: opening a Sheet is the slowest step in Apps Script.
+let BOOK_ = null;
+const SHEETS_ = {};
 function book_() {
-  if (SETTINGS.SHEET_ID) return SpreadsheetApp.openById(SETTINGS.SHEET_ID);
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  if (!ss) throw err_('Set SHEET_ID in Code.gs to the ID of the register Sheet.', 'setup');
-  return ss;
+  if (BOOK_) return BOOK_;
+  BOOK_ = SETTINGS.SHEET_ID ? SpreadsheetApp.openById(SETTINGS.SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  if (!BOOK_) throw err_('Set SHEET_ID in Code.gs to the ID of the register Sheet.', 'setup');
+  return BOOK_;
 }
 function sheet_(name) {
+  if (SHEETS_[name]) return SHEETS_[name];
   const sh = book_().getSheetByName(name);
   if (!sh) throw err_('The "' + name + '" tab is missing. Run setup() in Apps Script.', 'setup');
-  return sh;
+  return (SHEETS_[name] = sh);
 }
 function rows_(sh, cols) {
   const n = sh.getLastRow() - 1;
