@@ -49,7 +49,9 @@ This keeps the same web address, so `index.html` doesn't need changing. Don't us
 
 Don't edit the **Users** tab by hand. The password columns are scrambled hashes, and changing them breaks sign-in. Use the Team page instead. You can read, filter and chart the Vehicles tab freely, but make changes through the app so they're checked and logged.
 
-## Fleet types and statuses
+## Asset groups, fleet types and statuses
+
+- Assets are grouped as the Mining asset register groups them (Excavators, Dozers, Compactors, Graders, Dump trucks, ADT trucks, Support trucks, Wheel loaders, Drill rigs, Dewatering pumps, Gensets, Lighting towers, Mobile crushers, Light vehicles), plus Tipper trucks, Buses, Haulage & low beds and Other equipment for Project fleet not in the register. The list is `ASSET_GROUPS` in both files.
 
 - **Fleet type from the fleet number:** the fleet type comes from the fleet-number prefix, for example LV, TT, WT, DT, AT or EX. The full list is `TYPES` in both `Code.gs` and `index.html`; keep the two in step.
 - **Road-registered assets:** an asset counts as road-registered when it has a registration or any document date. Only road-registered assets are checked for a roadworthy certificate and insurance. Off-road plant shows as "No road documents".
