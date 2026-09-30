@@ -38,27 +38,32 @@ const USR_SHEET = 'Users';
 // New columns are only ever added at the end, so older rows keep lining up.
 const COLS = ['id','reg','fleetNo','group','site','op','model','responsible','rwNo','rwIssue','rwExp',
               'insurer','policyNo','insExp','notes','archived','rev','createdAt','updatedAt','updatedBy',
-              'unit','insIssue','serialNo','engineModel','engineNo','inRegister'];
+              'unit','insIssue','serialNo','engineModel','engineNo','inRegister','assetGroup'];
 const HEADINGS = ['ID','Registration','Fleet no.','Fleet type','Site','Operating status','Make / model','Responsible person',
                   'Roadworthy cert. no.','Roadworthy issued','Roadworthy expiry','Insurer','Policy no.','Insurance expiry',
                   'Notes','Archived','Revision','Created (UTC)','Updated (UTC)','Updated by',
-                  'Business unit','Insurance issued','Chassis / serial no.','Engine model','Engine no.','In asset register'];
+                  'Business unit','Insurance issued','Chassis / serial no.','Engine model','Engine no.','In asset register','Asset group'];
 const ACT_COLS = ['at','vehicleId','reg','action','by','changes','byEmail'];
 const ACT_HEADINGS = ['Time (UTC)','Vehicle ID','Registration','Action','By','Changes (JSON)','By (email)'];
 const USR_COLS = ['email','name','role','status','hash','salt','pwv','failed','lockedUntil','codeHash','codeExpires','codeTries',
                   'createdAt','addedBy','lastLogin'];
 const USR_HEADINGS = ['Email','Name','Role','Status','Password hash (do not edit)','Salt','Password version','Failed sign-ins',
                       'Locked until (UTC)','Code hash','Code expires (UTC)','Code tries','Added (UTC)','Added by','Last sign-in (UTC)'];
-const EDITABLE = ['reg','fleetNo','group','unit','site','op','model','responsible','serialNo','engineModel','engineNo','inRegister',
+const EDITABLE = ['reg','fleetNo','group','assetGroup','unit','site','op','model','responsible','serialNo','engineModel','engineNo','inRegister',
                   'rwNo','rwIssue','rwExp','insurer','policyNo','insIssue','insExp','notes','archived'];
 const DATE_KEYS = ['rwIssue','rwExp','insIssue','insExp'];
-// Fleet types (code = fleet-number prefix). Keep in step with TYPES in index.html.
+// Asset groups follow the Mining asset register; the last four hold Project fleet that isn't in it. Keep in step with index.html.
+const ASSET_GROUPS = ['Excavators','Dozers','Compactors','Graders','Dump trucks','ADT trucks','Support trucks','Wheel loaders','Drill rigs',
+  'Dewatering pumps','Gensets','Lighting towers','Mobile crushers','Light vehicles','Tipper trucks','Buses','Haulage & low beds','Other equipment'];
+// Fleet types (code = fleet-number prefix): [name, usual asset group].
 const TYPES = {
-  LV:'Light vehicle', FV:'Van', BS:'Bus', CT:'Cargo truck', TT:'Tipper truck', WT:'Water tanker', FT:'Fuel tanker',
-  ST:'Service truck', HT:'Haulage tractor', FB:'Flatbed truck', LB:'Low bed', CN:'Crane', DT:'Rigid dump truck',
-  AT:'Articulated dump truck', EX:'Excavator', DZ:'Dozer', GR:'Grader', WL:'Wheel loader', BH:'Backhoe loader',
-  RC:'Roller / compactor', TH:'Telehandler', DR:'Drill rig', DP:'Pump', GS:'Generator & site plant', LT:'Lighting tower',
-  MC:'Crushing & screening', OT:'Other',
+  EX:['Excavator','Excavators'], DZ:['Dozer','Dozers'], WD:['Wheel dozer','Dozers'], RC:['Roller / compactor','Compactors'], GR:['Grader','Graders'],
+  DT:['Rigid dump truck','Dump trucks'], AT:['Articulated dump truck','ADT trucks'], FT:['Fuel tanker','Support trucks'], ST:['Service truck','Support trucks'],
+  WT:['Water tanker','Support trucks'], FL:['Forklift','Support trucks'], WL:['Wheel loader','Wheel loaders'], DR:['Drill rig','Drill rigs'],
+  DP:['Pump','Dewatering pumps'], GS:['Generator, compressor & welder','Gensets'], LT:['Lighting tower','Lighting towers'], MC:['Crusher & screen','Mobile crushers'],
+  LV:['Light vehicle','Light vehicles'], FV:['Van','Light vehicles'], TT:['Tipper truck','Tipper trucks'], BS:['Bus','Buses'],
+  HT:['Haulage tractor','Haulage & low beds'], LB:['Low bed','Haulage & low beds'], FB:['Flatbed truck','Haulage & low beds'], CT:['Cargo truck','Haulage & low beds'],
+  CN:['Crane','Other equipment'], BH:['Backhoe loader','Other equipment'], TH:['Telehandler','Other equipment'], OT:['Other','Other equipment'],
 };
 const LEGACY_TYPES = { ADT: 'AT' };
 const UNITS = ['Rabotec Mining','Rabotec Project'];
@@ -479,6 +484,7 @@ function sanitize_(x) {
   const nm = v.fleetNo || v.reg;
   v.group = LEGACY_TYPES[v.group] || v.group;
   if (!TYPES[v.group]) throw err_('Choose a valid fleet type for ' + nm + '.', 'bad');
+  if (ASSET_GROUPS.indexOf(v.assetGroup) < 0) v.assetGroup = TYPES[v.group][1];
   if (UNITS.indexOf(v.unit) < 0) v.unit = UNITS[0];
   v.op = LEGACY_OPS[v.op] || v.op;
   if (OPS.indexOf(v.op) < 0) v.op = 'Active';
@@ -514,7 +520,7 @@ function sendExpiryDigest() {
     list.map(i => {
       const when = i.left === null ? 'Not recorded' : i.left < 0 ? (-i.left) + ' days overdue' : i.left === 0 ? 'Expires today' : i.left + ' days left';
       const col = i.left === null ? '#5a4f9a' : i.left <= RED_DAYS ? '#b3261e' : '#a45a00';
-      return '<tr><td style="' + td + '"><b>' + esc_(i.v.fleetNo || '—') + '</b> ' + esc_(i.v.reg) + '<br><span style="color:#666">' + esc_(TYPES[i.v.group] || i.v.group) + '</span></td><td style="' + td + '">' +
+      return '<tr><td style="' + td + '"><b>' + esc_(i.v.fleetNo || '—') + '</b> ' + esc_(i.v.reg) + '<br><span style="color:#666">' + esc_(i.v.assetGroup || (TYPES[i.v.group] || [i.v.group])[0]) + '</span></td><td style="' + td + '">' +
         esc_(i.v.unit) + '<br><span style="color:#666">' + esc_(i.v.site) + '</span></td><td style="' + td + '">' + i.doc + '</td><td style="' + td + '">' + (i.date || '—') +
         '</td><td style="' + td + ';color:' + col + ';font-weight:600">' + when + '</td></tr>';
     }).join('') + '</table>';

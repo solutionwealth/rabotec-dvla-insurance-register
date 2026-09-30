@@ -431,26 +431,21 @@ const PPTX_URL = "https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bun
 const PPTX_SRI = "sha384-Cck14aA9cifjYolcnjebXRfWGkz5ltHMBiG4px/j8GS+xQcb7OhNQWZYyWjQ+UwQ";
 
 /* ───────── constants ───────── */
-const CATS = [
-  {id:"LVB",   name:"Light vehicles & buses"},
-  {id:"TRK",   name:"Trucks & trailers"},
-  {id:"HAUL",  name:"Haul trucks"},
-  {id:"EARTH", name:"Earthmoving"},
-  {id:"DRILL", name:"Drilling"},
-  {id:"PLANT", name:"Plant & site equipment"},
-  {id:"OTH",   name:"Other"},
-];
-// Fleet types: code = fleet-number prefix. Keep in step with TYPES in Code.gs.
+// Asset groups follow the Mining asset register (its group sheets); the last four hold Project fleet that isn't in it.
+const ASSET_GROUPS = ["Excavators","Dozers","Compactors","Graders","Dump trucks","ADT trucks","Support trucks","Wheel loaders","Drill rigs",
+  "Dewatering pumps","Gensets","Lighting towers","Mobile crushers","Light vehicles","Tipper trucks","Buses","Haulage & low beds","Other equipment"];
+const IN_REGISTER_GROUPS = new Set(ASSET_GROUPS.slice(0,14));
+const CATS = ASSET_GROUPS.map(g=>({id:g,name:g}));
+// Fleet types: code = fleet-number prefix; the third value is the asset group a new asset of that type goes in. Keep in step with Code.gs.
 const TYPES = [
-  ["LV","Light vehicle","LVB"],["FV","Van","LVB"],["BS","Bus","LVB"],
-  ["CT","Cargo truck","TRK"],["TT","Tipper truck","TRK"],["WT","Water tanker","TRK"],["FT","Fuel tanker","TRK"],["ST","Service truck","TRK"],
-  ["HT","Haulage tractor","TRK"],["FB","Flatbed truck","TRK"],["LB","Low bed","TRK"],
-  ["DT","Rigid dump truck","HAUL"],["AT","Articulated dump truck","HAUL"],
-  ["EX","Excavator","EARTH"],["DZ","Dozer","EARTH"],["GR","Grader","EARTH"],["WL","Wheel loader","EARTH"],["BH","Backhoe loader","EARTH"],
-  ["RC","Roller / compactor","EARTH"],["TH","Telehandler","EARTH"],
-  ["DR","Drill rig","DRILL"],
-  ["DP","Pump","PLANT"],["GS","Generator & site plant","PLANT"],["LT","Lighting tower","PLANT"],["MC","Crushing & screening","PLANT"],["CN","Crane","PLANT"],
-  ["OT","Other","OTH"],
+  ["EX","Excavator","Excavators"],["DZ","Dozer","Dozers"],["WD","Wheel dozer","Dozers"],["RC","Roller / compactor","Compactors"],["GR","Grader","Graders"],
+  ["DT","Rigid dump truck","Dump trucks"],["AT","Articulated dump truck","ADT trucks"],
+  ["FT","Fuel tanker","Support trucks"],["ST","Service truck","Support trucks"],["WT","Water tanker","Support trucks"],["FL","Forklift","Support trucks"],
+  ["WL","Wheel loader","Wheel loaders"],["DR","Drill rig","Drill rigs"],["DP","Pump","Dewatering pumps"],["GS","Generator, compressor & welder","Gensets"],
+  ["LT","Lighting tower","Lighting towers"],["MC","Crusher & screen","Mobile crushers"],["LV","Light vehicle","Light vehicles"],["FV","Van","Light vehicles"],
+  ["TT","Tipper truck","Tipper trucks"],["BS","Bus","Buses"],
+  ["HT","Haulage tractor","Haulage & low beds"],["LB","Low bed","Haulage & low beds"],["FB","Flatbed truck","Haulage & low beds"],["CT","Cargo truck","Haulage & low beds"],
+  ["CN","Crane","Other equipment"],["BH","Backhoe loader","Other equipment"],["TH","Telehandler","Other equipment"],["OT","Other","Other equipment"],
 ].map(([code,name,cat])=>({code,name,cat}));
 const TYPE = Object.fromEntries(TYPES.map(t=>[t.code,t]));
 const UNITS = ["Rabotec Mining","Rabotec Project"];
@@ -458,7 +453,7 @@ const OPS = ["Active","Parked","Down","Out of site","Retired","Not confirmed"];
 const RED = 14;                  // red flag: expires within 2 weeks
 const WINDOW = 30;               // renewal window in days
 const FIELDS = {
-  reg:"Registration", fleetNo:"Fleet no.", group:"Fleet type", unit:"Business unit", site:"Site", op:"Operating status",
+  reg:"Registration", fleetNo:"Fleet no.", group:"Fleet type", assetGroup:"Asset group", unit:"Business unit", site:"Site", op:"Operating status",
   model:"Make / model", responsible:"Responsible person", serialNo:"Chassis / serial no.", engineModel:"Engine model", engineNo:"Engine no.",
   inRegister:"In asset register", rwNo:"Roadworthy cert. no.", rwIssue:"Roadworthy issued", rwExp:"Roadworthy expiry",
   insurer:"Insurer", policyNo:"Policy no.", insIssue:"Insurance issued", insExp:"Insurance expiry", notes:"Notes", archived:"Register status",
@@ -523,8 +518,8 @@ const normFleet = s => String(s||"").toUpperCase().replace(/\s+/g,"");
 const regKey = s => normReg(s).replace(/[\s\-]/g,"");
 const $ = (sel, root=document) => root.querySelector(sel);
 const typeName = code => (TYPE[code]||{name:code||"—"}).name;
-const catOf = code => (TYPE[code]||{cat:"OTH"}).cat;
-const catName = id => (CATS.find(c=>c.id===id)||{name:id}).name;
+const catOf = code => (TYPE[code]||{cat:"Other equipment"}).cat;
+const groupOf = v => ASSET_GROUPS.includes(v.assetGroup) ? v.assetGroup : catOf(v.group);
 const assetName = v => v.fleetNo || v.reg || "Unnamed asset";
 const plural = (n,w,p) => `${n} ${n===1?w:(p||w+"s")}`;
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,4200); }
@@ -686,7 +681,7 @@ function counts(list){
   c.flags=c.red+c.expired+c.missing; return c;
 }
 function matches(v,f){
-  return (!f.unit||v.unit===f.unit) && (!f.cat||catOf(v.group)===f.cat) && (!f.group||v.group===f.group) && (!f.site||v.site===f.site)
+  return (!f.unit||v.unit===f.unit) && (!f.cat||groupOf(v)===f.cat) && (!f.group||v.group===f.group) && (!f.site||v.site===f.site)
     && (!f.op||v.op===f.op) && (!f.status||(f.status==="flag"?isFlag(vehStatus(v)):vehStatus(v)===f.status));
 }
 function sitesOf(list){ return [...new Set(list.map(v=>v.site).filter(Boolean))].sort(); }
@@ -725,7 +720,7 @@ function renderNav(){
   const html=views().map(v=>`<button data-go="${v.id}" ${state.view===v.id?'aria-current="page"':""}>${v.icon}<span>${v.label}</span>${badge(v)}</button>`).join("");
   $("#nav-main").innerHTML=`<div class="nav-label">Workspace</div>${html}`;
   const act=active();
-  $("#nav-groups").innerHTML=`<div class="nav-label">Fleet categories</div>`+CATS.map(c=>{const n=act.filter(v=>catOf(v.group)===c.id).length; return n?`<button data-go="assets" data-cat="${c.id}" ${state.view==="assets"&&state.f.cat===c.id?'aria-current="page"':""}><span>${c.name}</span><span class="qty">${n}</span></button>`:"";}).join("");
+  $("#nav-groups").innerHTML=`<div class="nav-label">Asset groups</div>`+CATS.map(c=>{const n=act.filter(v=>groupOf(v)===c.id).length; return n?`<button data-go="assets" data-cat="${c.id}" ${state.view==="assets"&&state.f.cat===c.id?'aria-current="page"':""}><span>${c.name}</span><span class="qty">${n}</span></button>`:"";}).join("");
   $("#tabs").innerHTML=views().map(v=>`<button data-go="${v.id}" ${state.view===v.id?'aria-current="page"':""}>${v.label}${v.id==="alerts"&&flags?` · ${flags}`:""}</button>`).join("");
   const live=state.dbState==="live";
   const ROLE_LABEL={admin:"Admin",editor:"Editor",viewer:"Viewer"};
@@ -794,8 +789,8 @@ function viewOverview(){
       ${flagList.length?`<div class="stoplist">${flagList.slice(0,7).map(x=>`<button class="stop" data-open="${esc(x.v.id)}">${chip(x.st)}<span><span class="plate">${esc(assetName(x.v))}</span> <span class="fleetno">${esc(x.v.fleetNo?x.v.reg:"")}</span><br><span class="why">${x.k==="rw"?"Roadworthy":"Insurance"} ${x.st==="missing"?"not recorded":relText(x.date)} · ${esc(typeName(x.v.group))}</span></span></button>`).join("")}</div>${flagList.length>7?`<button class="link" data-go="alerts">See all ${flagList.length} →</button>`:""}`
       :`<div class="empty-mini"><b>${I.check.replace("<svg",'<svg width="18" height="18"')} No red flags</b><span>Every road-registered asset has both documents valid for more than ${RED} days.</span></div>`}
     </article></section>`;
-  h+=`<section class="panel"><div class="panel-h"><div><h2>By fleet category</h2><p>Bar shows road-registered assets that are valid, due, red-flagged, expired or missing</p></div><button class="link" data-go="reports">Reports →</button></div>
-    <div class="groups">${CATS.map(cat=>{const gl=list.filter(v=>catOf(v.group)===cat.id); if(!gl.length) return ""; const gc=counts(gl);
+  h+=`<section class="panel"><div class="panel-h"><div><h2>By asset group</h2><p>Grouped as in the asset register. Bar shows road-registered assets that are valid, due, red-flagged, expired or missing</p></div><button class="link" data-go="reports">Reports →</button></div>
+    <div class="groups">${CATS.map(cat=>{const gl=list.filter(v=>groupOf(v)===cat.id); if(!gl.length) return ""; const gc=counts(gl);
       return `<button class="group" data-go="assets" data-cat="${cat.id}"><div class="top"><span class="code">${gc.road} road</span><span class="n">${gl.length}</span></div><h3>${cat.name}</h3>${gc.road?stackBar(gc):'<div class="stack"></div>'}<small>${gc.road?(gc.flags?`<span class="t-red">${gc.flags} red flag${gc.flags===1?"":"s"}</span>`:gc.due?`${gc.due} due soon`:"All documents valid"):"Off-road plant: no DVLA documents"}</small></button>`;}).join("")}</div>
     <div class="sites">${UNITS.map(u=>{const ul=list.filter(v=>v.unit===u),uc=counts(ul); const top=sitesOf(ul).map(s=>[s,ul.filter(v=>v.site===s).length]).sort((a,b)=>b[1]-a[1]).slice(0,3);
       return `<button class="site" data-go="assets" data-unit="${esc(u)}"><b>${esc(u)}</b><span class="num">${plural(ul.length,"asset")} · ${uc.road} road-registered · <span class="${uc.flags?"t-red":""}">${uc.flags} red flag${uc.flags===1?"":"s"}</span></span><span>${top.map(([s,n])=>`${esc(s)} ${n}`).join(" · ")||"—"}</span></button>`;}).join("")}</div>
@@ -835,10 +830,10 @@ function horizonChart(list){
 /* ───────── all assets ───────── */
 function filterSelects(f, prefix){
   const all=data();
-  const types=TYPES.filter(t=>(!f.cat||t.cat===f.cat) && all.some(v=>v.group===t.code));
+  const types=TYPES.filter(t=>all.some(v=>v.group===t.code&&(!f.cat||groupOf(v)===f.cat)));
   const sel=(id,label,items,val)=>`<select class="f" id="${prefix}-${id}" aria-label="${label}"><option value="">${label}</option>${items.map(([v,l])=>`<option value="${esc(v)}" ${val===v?"selected":""}>${esc(l)}</option>`).join("")}</select>`;
   return sel("unit","All business units",UNITS.map(u=>[u,u]),f.unit)
-    + sel("cat","All categories",CATS.filter(c=>all.some(v=>catOf(v.group)===c.id)).map(c=>[c.id,c.name]),f.cat)
+    + sel("cat","All asset groups",CATS.filter(c=>all.some(v=>groupOf(v)===c.id)).map(c=>[c.id,c.name]),f.cat)
     + sel("group","All fleet types",types.map(t=>[t.code,`${t.code} · ${t.name}`]),f.group)
     + sel("site","All sites",sitesOf(all).map(s=>[s,s]),f.site)
     + sel("op","Any operating status",OPS.map(s=>[s,s]),f.op)
@@ -846,7 +841,7 @@ function filterSelects(f, prefix){
 }
 function viewAssets(){
   const f=state.f;
-  const title=f.group?typeName(f.group):f.cat?catName(f.cat):f.unit?f.unit:"All assets";
+  const title=f.group?typeName(f.group):f.cat?f.cat:f.unit?f.unit:"All assets";
   let h=header("Asset register", esc(title), "Every asset: vehicles, trucks, mining fleet and plant. Select a row for details, history and its own report.",
     writeActions(`<button class="btn" data-act="export">${I.down}Export CSV</button><button class="btn" data-act="report-assets">${I.ppt}PowerPoint report</button>`))+banners();
   if(!state.loaded&&!state.demo) return h+loadingBlock();
@@ -910,7 +905,7 @@ function reportList(){
   return data().filter(v=>!v.archived && (r.retired||v.op!=="Retired") && matches(v,r));
 }
 function reportTitle(r){
-  const parts=[r.group?typeName(r.group):r.cat?catName(r.cat):"All fleet types", r.unit||"", r.site||"", r.op||"", r.status?(r.status==="flag"?"Red flags":STATUS_LABEL[r.status]):""].filter(Boolean);
+  const parts=[r.group?typeName(r.group):r.cat?r.cat:"All asset groups", r.unit||"", r.site||"", r.op||"", r.status?(r.status==="flag"?"Red flags":STATUS_LABEL[r.status]):""].filter(Boolean);
   return parts.join(" · ");
 }
 function viewReports(){
@@ -926,10 +921,16 @@ function viewReports(){
       <div class="rsum-k"><span><b class="t-valid">${c.valid}</b>Valid</span><span><b class="t-due">${c.due}</b>Due 15–30 d</span><span><b class="t-red">${c.red}</b>≤ 14 days</span><span><b class="t-expired">${c.expired}</b>Expired</span><span><b class="t-missing">${c.missing}</b>Missing</span></div>
       <div class="actions"><button class="btn" data-act="r-csv" ${list.length?"":"disabled"}>${I.down}CSV</button><button class="btn primary" data-act="r-ppt" ${list.length?"":"disabled"}>${I.ppt}PowerPoint report</button></div>
     </div></section>`;
+  const groups=ASSET_GROUPS.map(g=>({g,l:list.filter(v=>groupOf(v)===g)})).filter(x=>x.l.length);
+  h+=`<section class="panel"><div class="panel-h"><div><h2>Reports by asset group</h2><p>Groups as in the asset register. One click makes a PowerPoint for that group within the selection above</p></div></div>
+    <div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Asset group</th><th>Fleet types</th><th class="n">Assets</th><th class="n">Road</th><th class="n">Valid</th><th class="n">15–30 d</th><th class="n">≤ 14 d</th><th class="n">Expired</th><th class="n">Missing</th><th></th></tr></thead><tbody>
+    ${groups.map(({g,l})=>{const k=counts(l); return `<tr style="cursor:default"><td><b>${esc(g)}</b>${IN_REGISTER_GROUPS.has(g)?"":' <span class="muted" style="font-size:12px">Project fleet</span>'}</td><td class="muted">${esc([...new Set(l.map(v=>v.group))].join(", "))}</td><td class="n">${k.total}</td><td class="n">${k.road}</td><td class="n t-valid">${k.valid||""}</td><td class="n t-due">${k.due||""}</td><td class="n t-red">${k.red||""}</td><td class="n t-expired">${k.expired||""}</td><td class="n t-missing">${k.missing||""}</td>
+      <td style="text-align:right;white-space:nowrap"><button class="btn sm" data-view-cat="${esc(g)}">View</button> <button class="btn sm primary" data-report-cat="${esc(g)}">${I.ppt}Report</button></td></tr>`;}).join("")||`<tr><td colspan="10" class="muted">No assets match the selection.</td></tr>`}
+    </tbody></table></div></section>`;
   const types=TYPES.map(t=>({t,l:list.filter(v=>v.group===t.code)})).filter(x=>x.l.length).sort((a,b)=>CATS.findIndex(c=>c.id===a.t.cat)-CATS.findIndex(c=>c.id===b.t.cat)||b.l.length-a.l.length);
   h+=`<section class="panel"><div class="panel-h"><div><h2>Reports by fleet type</h2><p>One click makes a PowerPoint for that fleet type within the selection above</p></div></div>
-    <div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Fleet type</th><th>Category</th><th class="n">Assets</th><th class="n">Road</th><th class="n">Valid</th><th class="n">15–30 d</th><th class="n">≤ 14 d</th><th class="n">Expired</th><th class="n">Missing</th><th></th></tr></thead><tbody>
-    ${types.map(({t,l})=>{const k=counts(l); return `<tr style="cursor:default"><td><span class="code-pill">${t.code}</span> <b>${esc(t.name)}</b></td><td class="muted">${esc(catName(t.cat))}</td><td class="n">${k.total}</td><td class="n">${k.road}</td><td class="n t-valid">${k.valid||""}</td><td class="n t-due">${k.due||""}</td><td class="n t-red">${k.red||""}</td><td class="n t-expired">${k.expired||""}</td><td class="n t-missing">${k.missing||""}</td>
+    <div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Fleet type</th><th>Usual asset group</th><th class="n">Assets</th><th class="n">Road</th><th class="n">Valid</th><th class="n">15–30 d</th><th class="n">≤ 14 d</th><th class="n">Expired</th><th class="n">Missing</th><th></th></tr></thead><tbody>
+    ${types.map(({t,l})=>{const k=counts(l); return `<tr style="cursor:default"><td><span class="code-pill">${t.code}</span> <b>${esc(t.name)}</b></td><td class="muted">${esc(t.cat)}</td><td class="n">${k.total}</td><td class="n">${k.road}</td><td class="n t-valid">${k.valid||""}</td><td class="n t-due">${k.due||""}</td><td class="n t-red">${k.red||""}</td><td class="n t-expired">${k.expired||""}</td><td class="n t-missing">${k.missing||""}</td>
       <td style="text-align:right;white-space:nowrap"><button class="btn sm" data-view-type="${t.code}">View</button> <button class="btn sm primary" data-report-type="${t.code}">${I.ppt}Report</button></td></tr>`;}).join("")||`<tr><td colspan="10" class="muted">No assets match the selection.</td></tr>`}
     </tbody></table></div></section>`;
   const units=UNITS.map(u=>({u,l:list.filter(v=>v.unit===u)})).filter(x=>x.l.length);
@@ -1161,7 +1162,7 @@ function openDetail(id, refresh){
     </div>`:`<div class="banner"><span class="grow"><b>Off-road asset.</b> No registration or document dates are recorded, so no roadworthy certificate or insurance is tracked. Add a registration if this asset goes on public roads.</span></div>`}
     <dl class="kv">
       <div><dt>Fleet no.</dt><dd>${esc(v.fleetNo||"Not recorded")}</dd></div><div><dt>Registration</dt><dd>${esc(v.reg||"Not registered")}</dd></div>
-      <div><dt>Fleet type</dt><dd>${esc(v.group)} · ${esc(typeName(v.group))}</dd></div><div><dt>Category</dt><dd>${esc(catName(catOf(v.group)))}</dd></div>
+      <div><dt>Fleet type</dt><dd>${esc(v.group)} · ${esc(typeName(v.group))}</dd></div><div><dt>Asset group</dt><dd>${esc(groupOf(v))}</dd></div>
       <div><dt>Business unit</dt><dd>${esc(v.unit||"—")}</dd></div><div><dt>Site</dt><dd>${esc(v.site||"—")}</dd></div>
       <div><dt>Make / model</dt><dd>${esc(v.model||"Not recorded")}</dd></div><div><dt>Chassis / serial no.</dt><dd>${esc(v.serialNo||"Not recorded")}</dd></div>
       <div><dt>Engine</dt><dd>${esc([v.engineModel,v.engineNo].filter(Boolean).join(" · ")||"Not recorded")}</dd></div><div><dt>Responsible person</dt><dd>${esc(v.responsible||"Not recorded")}</dd></div>
@@ -1175,9 +1176,9 @@ function openDetail(id, refresh){
 }
 
 /* ───────── add / edit ───────── */
-const BLANK={fleetNo:"",reg:"",group:"LV",unit:"Rabotec Mining",site:"Asanko",op:"Active",model:"",serialNo:"",engineModel:"",engineNo:"",responsible:"",inRegister:"",
+const BLANK={fleetNo:"",reg:"",group:"LV",assetGroup:"",unit:"Rabotec Mining",site:"Asanko",op:"Active",model:"",serialNo:"",engineModel:"",engineNo:"",responsible:"",inRegister:"",
   rwNo:"",rwIssue:"",rwExp:"",insurer:"",policyNo:"",insIssue:"",insExp:"",notes:"",archived:false};
-const PREFIX={RB:"EX",G:"GR",FL:"WL",R:"RC",WP:"DP",AC:"GS",EC:"GS",TG:"GS",WD:"GS",WM:"GS",MIC:"MC",MJC:"MC",MSP:"MC",ADT:"AT"};
+const PREFIX={RB:"EX",G:"GR",R:"RC",WP:"DP",AC:"GS",EC:"GS",TG:"WL",WM:"GS",MIC:"MC",MJC:"MC",MSP:"MC",ADT:"AT"};
 function typeFromFleet(no){ const m=/^([A-Z]+)/.exec(normFleet(no)); if(!m) return ""; const p=m[1]; return TYPE[p]?p:PREFIX[p]||""; }
 function fld(k,label,type,opts){
   const o=opts||{}; const id="e-"+k;
@@ -1194,6 +1195,7 @@ function openEdit(id){
     ${fld("fleetNo","Fleet no.","text",{ph:"e.g. TT012"})}
     ${fld("reg","Registration","text",{ph:"e.g. GT 4821-22",hint:"Leave blank for off-road plant."})}
     ${fld("group","Fleet type *","select",{html:typeOptions()})}
+    ${fld("assetGroup","Asset group *","select",{items:ASSET_GROUPS.map(g=>[g,g+(IN_REGISTER_GROUPS.has(g)?"":" (not in asset register)")])})}
     ${fld("unit","Business unit *","select",{items:UNITS.map(s=>[s,s])})}
     ${fld("site","Site","text",{list:"site-list",ph:"e.g. Asanko"})}
     ${fld("op","Operating status","select",{items:OPS.map(s=>[s,s])})}
@@ -1218,7 +1220,11 @@ function openEdit(id){
   <div class="dlg-f"><span class="grow">${v?`Revision ${v.rev||1}`:""}</span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary" id="save-btn">${I.check}Save asset</button></div></form>`;
   const form=$("#edit-form");
   Object.keys(BLANK).forEach(k=>{ if(form.elements[k]) form.elements[k].value=draft[k]??""; });
-  if(!v) form.elements.fleetNo.addEventListener("input",()=>{ const t=typeFromFleet(form.elements.fleetNo.value); if(t) form.elements.group.value=t; });
+  form.elements.assetGroup.value=groupOf(draft);
+  let groupTouched=!!v;
+  form.elements.assetGroup.addEventListener("change",()=>groupTouched=true);
+  form.elements.group.addEventListener("change",()=>{ if(!groupTouched) form.elements.assetGroup.value=catOf(form.elements.group.value); });
+  if(!v) form.elements.fleetNo.addEventListener("input",()=>{ const t=typeFromFleet(form.elements.fleetNo.value); if(t){ form.elements.group.value=t; if(!groupTouched) form.elements.assetGroup.value=catOf(t); } });
   form.addEventListener("submit",async e=>{
     e.preventDefault();
     const next={}; Object.keys(BLANK).forEach(k=>{ if(form.elements[k]) next[k]=String(form.elements[k].value||"").trim(); });
@@ -1298,13 +1304,13 @@ async function toggleArchive(id){
 }
 
 /* ───────── CSV export / import ───────── */
-const CSV_COLS=[["fleetNo","Fleet no."],["reg","Registration"],["group","Fleet type code"],["unit","Business unit"],["site","Site"],["op","Operating status"],["model","Make / model"],
+const CSV_COLS=[["fleetNo","Fleet no."],["reg","Registration"],["group","Fleet type code"],["assetGroup","Asset group"],["unit","Business unit"],["site","Site"],["op","Operating status"],["model","Make / model"],
   ["serialNo","Chassis / serial no."],["engineModel","Engine model"],["engineNo","Engine no."],["responsible","Responsible person"],["inRegister","In asset register"],
   ["rwNo","Roadworthy certificate no."],["rwIssue","Roadworthy issue date"],["rwExp","Roadworthy expiry"],["insurer","Insurer"],["policyNo","Policy number"],["insIssue","Insurance start date"],["insExp","Insurance expiry"],["notes","Notes"]];
 function exportCSV(list, name, template){
-  const head=[...CSV_COLS.map(c=>c[1]), ...(template?[]:["Fleet type","Category","Status","Roadworthy days left","Insurance days left","Archived"])];
-  const rows=[head, ...list.map(v=>[...CSV_COLS.map(([k])=>v[k]??""), typeName(v.group), catName(catOf(v.group)), STATUS_LABEL[vehStatus(v)], roadAsset(v)?daysLeft(v.rwExp)??"":"", roadAsset(v)?daysLeft(v.insExp)??"":"", v.archived?"Yes":"No"])];
-  if(template) rows.push(["LV001","GT 0000-24","LV","Rabotec Mining","Asanko","Active","Toyota Hilux","","","","Name","Yes","RW-12345","2026-01-15","2027-01-14","SIC Insurance","POL/2026/001","2026-04-01","2027-03-31",""]);
+  const head=[...CSV_COLS.map(c=>c[1]), ...(template?[]:["Fleet type","Status","Roadworthy days left","Insurance days left","Archived"])];
+  const rows=[head, ...list.map(v=>[...CSV_COLS.map(([k])=>v[k]??""), typeName(v.group), STATUS_LABEL[vehStatus(v)], roadAsset(v)?daysLeft(v.rwExp)??"":"", roadAsset(v)?daysLeft(v.insExp)??"":"", v.archived?"Yes":"No"])];
+  if(template) rows.push(["LV001","GT 0000-24","LV","Light vehicles","Rabotec Mining","Asanko","Active","Toyota Hilux","","","","Name","Yes","RW-12345","2026-01-15","2027-01-14","SIC Insurance","POL/2026/001","2026-04-01","2027-03-31",""]);
   download(name, new Blob(["﻿"+rows.map(r=>r.map(csvCell).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"}));
   if(!template) toast(`${plural(list.length,"asset")} exported`);
 }
@@ -1322,7 +1328,8 @@ function mapOp(s){ const t=String(s||"").toLowerCase(); if(!t) return ""; if(/re
 const HEAD_ALIASES={
   fleetNo:["fleet no.","fleet no","asset id","asset","fleet number","asset no","fleet id","equip id","equipment id","fleet"],
   reg:["registration","reg","plate","plate number","reg no","registration number","reg. no.","vehicle no"],
-  group:["fleet type code","fleet type","type","group","category","vehicle group","equipment type"],
+  group:["fleet type code","fleet type","type","vehicle group","equipment type"],
+  assetGroup:["asset group","unit group","group","category"],
   unit:["business unit","unit","company","division"],
   site:["site","location","pit","project"],
   op:["operating status","op status","vehicle status","operational status","status"],
@@ -1352,6 +1359,7 @@ function analyseImport(text){
       engineModel:get("engineModel"),engineNo:get("engineNo"),responsible:get("responsible"),inRegister:/^y/i.test(get("inRegister"))?"Yes":/^n/i.test(get("inRegister"))?"No":"",
       rwNo:get("rwNo"),insurer:get("insurer"),policyNo:get("policyNo"),notes:get("notes").slice(0,2000)};
     rec.group=mapType(get("group"),rec.fleetNo);
+    { const g=get("assetGroup").toLowerCase(); rec.assetGroup=ASSET_GROUPS.find(x=>x.toLowerCase()===g||x.toLowerCase().replace(/s$/,"")===g.replace(/s$/,""))||""; }
     const problems=[];
     if(!rec.reg&&!rec.fleetNo) problems.push("no fleet no. or registration");
     ["rwIssue","rwExp","insIssue","insExp"].forEach(k=>{ const p=parseAnyDate(get(k)); if(p===null) problems.push(`${FIELDS[k].toLowerCase()} "${get(k)}" not a date`); rec[k]=p||""; });
@@ -1537,10 +1545,10 @@ async function makeReport(list, scope, fileTag){
     s.addText([{text:"No road-registered assets",options:{bold:true,fontSize:16,color:C.navy,breakLine:true}},{text:"This selection is off-road plant and mining equipment. No roadworthy certificate or insurance dates are tracked for it.",options:{fontSize:11,color:C.ink2}}],
       {x:0.85,y:3.4,w:4.4,h:3,fontFace:FONT,valign:"middle"});
   }
-  const typesIn=TYPES.map(t=>({t,l:list.filter(v=>v.group===t.code)})).filter(x=>x.l.length);
+  const typesIn=ASSET_GROUPS.map(g=>({t:{name:g,cat:g},l:list.filter(v=>groupOf(v)===g)})).filter(x=>x.l.length);
   const roadTypes=typesIn.filter(x=>x.l.some(roadAsset)).sort((a,b)=>b.l.length-a.l.length).slice(0,10);
   if(roadTypes.length>1){
-    s.addText("ROAD ASSETS BY FLEET TYPE",{x:6.1,y:2.95,w:6.8,h:0.3,fontFace:FONT,fontSize:10,bold:true,color:C.ink2,charSpacing:1,margin:0});
+    s.addText("ROAD ASSETS BY ASSET GROUP",{x:6.1,y:2.95,w:6.8,h:0.3,fontFace:FONT,fontSize:10,bold:true,color:C.ink2,charSpacing:1,margin:0});
     const labels=roadTypes.map(x=>x.t.name).reverse(), ser=[["Valid","valid",C.ok],[`${RED+1}–${WINDOW} d`,"due","F0A93A"],[`≤ ${RED} d`,"red",C.red],["Expired","expired",C.deep],["Missing","missing",C.miss]];
     s.addChart("bar",ser.map(([n,k])=>({name:n,labels,values:roadTypes.map(x=>counts(x.l)[k]).reverse()})),{x:6.0,y:3.2,w:6.95,h:3.7,barDir:"bar",barGrouping:"stacked",chartColors:ser.map(x=>x[2]),
       showLegend:true,legendPos:"b",legendFontFace:FONT,legendFontSize:9,catAxisLabelFontFace:FONT,catAxisLabelFontSize:9,valAxisLabelFontSize:8,valAxisLabelFontFace:FONT,
@@ -1585,10 +1593,10 @@ async function makeReport(list, scope, fileTag){
   // Breakdown by fleet type
   if(typesIn.length>1){
     const body=typesIn.sort((a,b)=>CATS.findIndex(x=>x.id===a.t.cat)-CATS.findIndex(x=>x.id===b.t.cat)||b.l.length-a.l.length).map(({t,l})=>{const k=counts(l); const pct=k.road?Math.round((k.valid+k.due)/k.road*100)+"%":"N/A";
-      return [cell(`${t.code} · ${t.name}`,{bold:true}),cell(catName(t.cat)),cell(k.total,{align:"center"}),cell(k.road,{align:"center"}),cell(k.valid||"",{align:"center",color:C.ok}),cell(k.due||"",{align:"center",color:C.due}),
+      return [cell(t.name,{bold:true}),cell(IN_REGISTER_GROUPS.has(t.name)?"Asset register":"Project fleet"),cell(k.total,{align:"center"}),cell(k.road,{align:"center"}),cell(k.valid||"",{align:"center",color:C.ok}),cell(k.due||"",{align:"center",color:C.due}),
         k.red?stCell("red",String(k.red)):cell(""),k.expired?stCell("expired",String(k.expired)):cell(""),k.missing?stCell("missing",String(k.missing)):cell(""),cell(pct,{align:"center",bold:true})];});
     const k=c; body.push([cell("Total",{bold:true}),cell(""),cell(k.total,{align:"center",bold:true}),cell(k.road,{align:"center",bold:true}),cell(k.valid,{align:"center",bold:true}),cell(k.due,{align:"center",bold:true}),cell(k.red,{align:"center",bold:true}),cell(k.expired,{align:"center",bold:true}),cell(k.missing,{align:"center",bold:true}),cell(k.road?legal+"%":"N/A",{align:"center",bold:true})].map(x=>({...x,options:{...x.options,fill:{color:C.soft}}})));
-    pagedTable(p,"Summary by fleet type",scope,[hdr("Fleet type"),hdr("Category"),hdr("Assets"),hdr("Road"),hdr("Valid"),hdr("15–30 d"),hdr("≤ 14 d"),hdr("Expired"),hdr("Missing"),hdr("Road-legal")],body,[2.6,2.3,0.9,0.9,0.9,0.95,0.95,0.95,0.95,1.0],14);
+    pagedTable(p,"Summary by asset group",scope,[hdr("Asset group"),hdr("Source"),hdr("Assets"),hdr("Road"),hdr("Valid"),hdr("15–30 d"),hdr("≤ 14 d"),hdr("Expired"),hdr("Missing"),hdr("Road-legal")],body,[2.6,2.3,0.9,0.9,0.9,0.95,0.95,0.95,0.95,1.0],14);
   }
 
   // Register
@@ -1626,7 +1634,7 @@ async function makeAssetReport(v){
     road?[[STATUS_SHORT[st],"Overall status",PST[st][1]===C.okS?C.ok:st==="due"?"F0A93A":st==="missing"?C.miss:C.red],[pLeft(v.rwExp),"Roadworthy",C.amber],[pLeft(v.insExp),"Insurance",C.amber]]:[["N/A","Off-road: no DVLA documents",C.amber]]);
   const s=p.addSlide({masterName:"BODY"});
   slideTitle(s,"Asset profile",`${assetName(v)} · ${typeName(v.group)}`);
-  const kv=[["Fleet no.",v.fleetNo],["Registration",v.reg||"Not registered"],["Fleet type",`${v.group} · ${typeName(v.group)}`],["Category",catName(catOf(v.group))],["Business unit",v.unit],["Site",v.site],["Operating status",v.op||"Active"],
+  const kv=[["Fleet no.",v.fleetNo],["Registration",v.reg||"Not registered"],["Fleet type",`${v.group} · ${typeName(v.group)}`],["Asset group",groupOf(v)],["Business unit",v.unit],["Site",v.site],["Operating status",v.op||"Active"],
     ["Make / model",v.model],["Chassis / serial no.",v.serialNo],["Engine",[v.engineModel,v.engineNo].filter(Boolean).join(" · ")],["Responsible person",v.responsible],["In asset register",v.inRegister]];
   s.addTable(kv.map(([k,val],i)=>[cell(k,{bold:true,color:C.ink2,fill:{color:i%2?"FFFFFF":"F7F8FA"}}),cell(val||"Not recorded",{fill:{color:i%2?"FFFFFF":"F7F8FA"}})]),{x:0.55,y:1.55,w:6.0,colW:[2.1,3.9],fontFace:FONT,fontSize:10.5,color:C.navy,rowH:0.38,valign:"middle",border:{type:"solid",pt:0.5,color:C.line},margin:[2,6,2,6]});
   const doc=(x,y,label,exp,lines)=>{ const s2=road?docStatus(exp):"na"; const [fc,bg]=PST[s2];
@@ -1668,6 +1676,8 @@ document.addEventListener("click",e=>{
   if(t.dataset.reportAsset){ const v=findV(t.dataset.reportAsset); if(v) runReport(t,()=>makeAssetReport(v)); return; }
   if(t.dataset.reportType){ const f={...state.r,group:t.dataset.reportType}; const list=reportList().filter(v=>v.group===f.group); runReport(t,()=>makeReport(list,reportTitle(f),reportTitle(f))); return; }
   if(t.dataset.reportSite){ const f={...state.r,site:t.dataset.reportSite,unit:t.dataset.unit}; const list=reportList().filter(v=>v.site===f.site&&v.unit===f.unit); runReport(t,()=>makeReport(list,reportTitle(f))); return; }
+  if(t.dataset.reportCat){ const f={...state.r,cat:t.dataset.reportCat,group:""}; const list=reportList().filter(v=>groupOf(v)===f.cat); runReport(t,()=>makeReport(list,reportTitle(f))); return; }
+  if(t.dataset.viewCat){ go("assets",{unit:state.r.unit,site:state.r.site,op:state.r.op,status:state.r.status,cat:t.dataset.viewCat}); return; }
   if(t.dataset.viewType){ go("assets",{unit:state.r.unit,site:state.r.site,op:state.r.op,status:state.r.status,group:t.dataset.viewType}); return; }
   if(t.dataset.sort){ const k=t.dataset.sort; state.sort = state.sort.key===k?{key:k,dir:-state.sort.dir}:{key:k,dir:1}; $("#reg-results").innerHTML=registerResults(); return; }
   if(t.dataset.arch!==undefined){ state.f.archived=t.dataset.arch==="1"; render(); return; }
@@ -1681,7 +1691,7 @@ document.addEventListener("click",e=>{
   else if(a==="import") openImport();
   else if(a==="export") exportCSV(filtered(), `rabotec-assets-${state.demo?"sample-":""}${state.today}.csv`);
   else if(a==="template") exportCSV([], "rabotec-asset-import-template.csv", true);
-  else if(a==="report-assets"){ const list=filtered(); if(!list.length){ toast("No assets match, so there's nothing to report."); return; } const f=state.f; const scope=[f.group?typeName(f.group):f.cat?catName(f.cat):"All fleet types",f.unit,f.site,f.op,f.status?(f.status==="flag"?"Red flags":STATUS_LABEL[f.status]):"",f.q?`"${f.q}"`:"",f.archived?"Archived":""].filter(Boolean).join(" · "); runReport(t,()=>makeReport(list,scope)); }
+  else if(a==="report-assets"){ const list=filtered(); if(!list.length){ toast("No assets match, so there's nothing to report."); return; } const f=state.f; const scope=[f.group?typeName(f.group):f.cat?f.cat:"All asset groups",f.unit,f.site,f.op,f.status?(f.status==="flag"?"Red flags":STATUS_LABEL[f.status]):"",f.q?`"${f.q}"`:"",f.archived?"Archived":""].filter(Boolean).join(" · "); runReport(t,()=>makeReport(list,scope)); }
   else if(a==="report-flags"){ const list=service().filter(v=>isFlag(vehStatus(v))); if(!list.length){ toast("No red flags right now."); return; } runReport(t,()=>makeReport(list,"Red flags · all fleet types","red-flags")); }
   else if(a==="r-ppt"){ const list=reportList(); runReport(t,()=>makeReport(list,reportTitle(state.r))); }
   else if(a==="r-csv"){ exportCSV(reportList(), `rabotec-report-${slug(reportTitle(state.r))}-${state.today}.csv`); }
@@ -1703,7 +1713,7 @@ document.addEventListener("change",e=>{
   if(id==="hist-file"){ handleHistFile(e.target.files[0]); return; }
   if(id==="r-retired"){ state.r.retired=e.target.checked; render(); return; }
   const m=/^(f|r)-(unit|cat|group|site|op|status)$/.exec(id);
-  if(m){ const f=m[1]==="f"?state.f:state.r; f[m[2]]=e.target.value; if(m[2]==="cat"&&f.group&&catOf(f.group)!==f.cat&&f.cat) f.group=""; state.limit=150; render(); }
+  if(m){ const f=m[1]==="f"?state.f:state.r; f[m[2]]=e.target.value; if(m[2]==="cat"&&f.group&&f.cat&&!data().some(v=>v.group===f.group&&groupOf(v)===f.cat)) f.group=""; state.limit=150; render(); }
 });
 function closeAll(){ document.querySelectorAll("dialog[open]").forEach(d=>d.close()); }
 setInterval(()=>{ const t=todayISO(); if(t!==state.today){ state.today=t; render(); } },60000);
