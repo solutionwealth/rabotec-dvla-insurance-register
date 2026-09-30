@@ -6,5 +6,5 @@ Roadworthy certificate and insurance register for the Rabotec fleet at Abore and
 - `Code.gs`: the Google Apps Script backend that stores records in a Google Sheet
 - `SETUP.md`: deployment steps
 
-The staff access code lives only in the Apps Script project, never in this repository.
+Everyone signs in with their own email and password; admins manage access on the Team page. No passwords or secrets are stored in this repository.
 The earlier ChatGPT-built version is kept on the `chatgpt-version` branch.

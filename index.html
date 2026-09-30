@@ -4,53 +4,54 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#15282a">
+<meta name="theme-color" content="#164C9D">
 <title>Rabotec Fleet Safety</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23f2b51d'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='15' text-anchor='middle' fill='%231b1b12'%3ERB%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23164C9D'/%3E%3Crect y='26' width='32' height='6' fill='%23F7941D'/%3E%3Ctext x='16' y='20' font-family='Arial' font-weight='700' font-size='14' text-anchor='middle' fill='%23fff'%3ERB%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: fixed left rail (desktop) / top tab strip (phone) + working canvas; summary before detail on every view. */
+/* Layout: fixed left rail (desktop) / top tab strip (phone) + working canvas; summary before detail on every view.
+   Colour: Rabotec Group brand — royal blue #164C9D, amber #F7941D, navy #19232B (from rabotecgroup.com). */
 :root{
-  --bg:#f3f4f1;           /* ground: pale overburden grey, slight green bias */
+  --bg:#f2f3f5;           /* Rabotec site light grey */
   --surface:#ffffff;
-  --surface-2:#eceee9;
-  --line:#d9ddd5;
-  --ink:#172224;          /* deep slate */
-  --ink-2:#4b5a5b;
-  --ink-3:#7a8786;
-  --accent:#0e6b66;       /* pit-water teal */
+  --surface-2:#e9edf3;
+  --line:#d6dce5;
+  --ink:#19232B;          /* Rabotec navy */
+  --ink-2:#4a5663;
+  --ink-3:#768392;
+  --accent:#164C9D;       /* Rabotec royal blue */
   --accent-ink:#ffffff;
-  --accent-soft:#dcecea;
-  --rail:#15282a;
-  --rail-ink:#dfe8e6;
-  --rail-dim:#8fa5a3;
-  --hi:#f2b51d;           /* hi-vis yellow, used only for the brand mark and focus */
+  --accent-soft:#e2eaf6;
+  --rail:#164C9D;
+  --rail-ink:#ffffff;
+  --rail-dim:#b9cbea;
+  --hi:#F7941D;           /* Rabotec amber: active marks, focus, insurance series */
   --ok:#1f7a45;  --ok-soft:#e1f1e6;
-  --due:#a45f00; --due-soft:#fbecd2;
+  --due:#a14f00; --due-soft:#fcebd6;
   --bad:#b3261e; --bad-soft:#f9e1de;
   --miss:#5a4f9a;--miss-soft:#e9e6f6;
-  --shadow:0 1px 2px rgba(20,35,36,.06),0 6px 20px rgba(20,35,36,.06);
+  --shadow:0 1px 2px rgba(25,35,43,.06),0 6px 20px rgba(25,35,43,.07);
   --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --r:10px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0f1718;--surface:#162123;--surface-2:#1c2a2c;--line:#2a3b3d;
-  --ink:#e6eeec;--ink-2:#a9bab8;--ink-3:#7d908e;
-  --accent:#3fb3aa;--accent-ink:#06201e;--accent-soft:#16383a;
-  --rail:#0b1213;--rail-ink:#dfe8e6;--rail-dim:#7f9795;--hi:#f2b51d;
+  --bg:#0e141a;--surface:#16202a;--surface-2:#1d2935;--line:#2a3846;
+  --ink:#e7ecf2;--ink-2:#a9b6c4;--ink-3:#7c8a99;
+  --accent:#6f9ee8;--accent-ink:#071833;--accent-soft:#182a48;
+  --rail:#0f2a57;--rail-ink:#ffffff;--rail-dim:#9fb4d8;--hi:#F7941D;
   --ok:#5cc98a;--ok-soft:#173226;--due:#f0a93a;--due-soft:#3a2c14;
   --bad:#ff7b70;--bad-soft:#3d1c1a;--miss:#a99cf0;--miss-soft:#28243f;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
   color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0f1718;--surface:#162123;--surface-2:#1c2a2c;--line:#2a3b3d;
-  --ink:#e6eeec;--ink-2:#a9bab8;--ink-3:#7d908e;
-  --accent:#3fb3aa;--accent-ink:#06201e;--accent-soft:#16383a;
-  --rail:#0b1213;--rail-ink:#dfe8e6;--rail-dim:#7f9795;--hi:#f2b51d;
+  --bg:#0e141a;--surface:#16202a;--surface-2:#1d2935;--line:#2a3846;
+  --ink:#e7ecf2;--ink-2:#a9b6c4;--ink-3:#7c8a99;
+  --accent:#6f9ee8;--accent-ink:#071833;--accent-soft:#182a48;
+  --rail:#0f2a57;--rail-ink:#ffffff;--rail-dim:#9fb4d8;--hi:#F7941D;
   --ok:#5cc98a;--ok-soft:#173226;--due:#f0a93a;--due-soft:#3a2c14;
   --bad:#ff7b70;--bad-soft:#3d1c1a;--miss:#a99cf0;--miss-soft:#28243f;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
@@ -71,14 +72,18 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100%}
 .rail{background:var(--rail);color:var(--rail-ink);padding:20px 14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:env(safe-area-inset-top,0px);height:100vh;overflow:auto}
 .brand{display:flex;align-items:center;gap:10px;padding:0 6px}
+.brand-logo{display:inline-flex;align-items:center;background:#fff;border-radius:7px;padding:4px 6px;flex:none}
+.brand-logo img{display:block;height:26px;width:auto}
+.brand-logo.fallback img{display:none}
+.brand-logo.fallback::before{content:"RABOTEC";font:700 16px/26px var(--f-display);color:#164C9D;letter-spacing:.06em;padding:0 4px}
 .brand-mark{width:36px;height:36px;border-radius:8px;background:var(--hi);color:#1b1b12;display:grid;place-items:center;font:700 17px/1 var(--f-display);letter-spacing:.02em}
 .brand b{display:block;font:700 19px/1 var(--f-display);letter-spacing:.04em;text-transform:uppercase}
 .brand small{display:block;color:var(--rail-dim);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
 .nav{display:flex;flex-direction:column;gap:2px}
 .nav-label{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--rail-dim);padding:0 10px 6px}
 .nav button{all:unset;display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--rail-ink);cursor:pointer;font-weight:500}
-.nav button:hover{background:rgba(255,255,255,.06)}
-.nav button[aria-current="page"]{background:rgba(255,255,255,.1);box-shadow:inset 3px 0 0 var(--hi)}
+.nav button:hover{background:rgba(255,255,255,.08)}
+.nav button[aria-current="page"]{background:rgba(255,255,255,.14);box-shadow:inset 3px 0 0 var(--hi)}
 .nav button:focus-visible{outline:3px solid var(--hi)}
 .nav svg{width:18px;height:18px;flex:none;opacity:.9}
 .nav .count{margin-left:auto;font:600 12px/1 var(--f-mono);background:var(--bad);color:#fff;border-radius:99px;padding:3px 7px}
@@ -336,20 +341,33 @@ dialog.drawer{margin:0 0 0 auto;height:100vh;max-height:100vh;border-radius:14px
 .signin p{margin:0;color:var(--ink-2)}
 .signin .remember{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--ink-2)}
 .stamp{font:500 11.5px/1.3 var(--f-mono);color:var(--ink-3)}
+.signin .brand small{color:var(--ink-3)}
+.signin-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.signin-tabs button{all:unset;cursor:pointer;padding:8px 10px;font-weight:600;font-size:13px;color:var(--ink-3);border-bottom:3px solid transparent;margin-bottom:-1px}
+.signin-tabs button[aria-selected="true"]{color:var(--accent);border-color:var(--hi)}
+.signin-tabs button:focus-visible{outline:3px solid var(--hi)}
+.okmsg{background:var(--ok-soft);color:var(--ok);border-radius:8px;padding:10px 12px;font-size:13.5px}
+.code-input{font:600 22px/1 var(--f-mono)!important;letter-spacing:.35em;text-align:center}
+.team-add{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,.8fr) auto;gap:10px;align-items:end}
+.team-add .fld input,.team-add .fld select{background:var(--bg)}
+.role-sel{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 8px}
+.st-active{color:var(--ok);background:var(--ok-soft)}.st-invited{color:var(--due);background:var(--due-soft)}.st-disabled{color:var(--ink-3);background:var(--surface-2)}
+.owner-tag{font:600 11px/1 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--hi);margin-left:6px}
+@media (max-width:720px){.team-add{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
 
 <div class="app" id="app">
   <aside class="rail" aria-label="Main navigation">
-    <div class="brand"><span class="brand-mark">RB</span><div><b>Rabotec</b><small>Fleet safety</small></div></div>
+    <div class="brand"><span class="brand-logo"><img src="https://rabotecgroup.com/images/header/160x40-px-logo.jpg" alt="Rabotec" width="104" height="26" onerror="this.parentNode.classList.add('fallback')"></span><div><small style="margin-top:0">Fleet safety</small></div></div>
     <nav class="nav" id="nav-main"></nav>
     <nav class="nav" id="nav-groups"></nav>
     <div class="rail-foot" id="rail-foot"></div>
   </aside>
   <div class="main">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">RB</span><div><b>Rabotec</b><small>Fleet safety</small></div></div>
+      <div class="brand"><span class="brand-logo"><img src="https://rabotecgroup.com/images/header/160x40-px-logo.jpg" alt="Rabotec" width="104" height="26" onerror="this.parentNode.classList.add('fallback')"></span><div><small style="margin-top:0">Fleet safety</small></div></div>
       <nav class="tabs" id="tabs"></nav>
     </header>
     <main class="canvas" id="canvas">
@@ -403,6 +421,7 @@ const I = {
   truck:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V6a1 1 0 0 1 1-1h10v12"/><path d="M14 9h4l3 4v4h-2"/><circle cx="7" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/><path d="M9 17.5h6"/></svg>',
   clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>',
+  users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>',
   plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
   down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg>',
@@ -467,11 +486,11 @@ const state = {
   loaded: false,
   dbState: "connecting",    // signin | connecting | live | offline
   activity: [],
-  session: null,            // {name, key, role}
+  session: null,            // {token, email, name, role}
+  users: [], usersLoaded: false,
   syncedAt: null,
   demo: false,
   canWrite: false,
-  meId: null, me: null,
   f: {q:"", group:"", site:"", status:"", archived:false},
   sort: {key:"status", dir:1},
   names: {},
@@ -483,18 +502,17 @@ async function api(action, payload){
   const s=state.session||{};
   let res;
   try{
-    res = await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,key:s.key,name:s.name,...(payload||{})}),redirect:"follow"});
+    res = await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,token:s.token,...(payload||{})}),redirect:"follow"});
   }catch(e){ const err=new Error("Can't reach the register. Check the network connection and try again."); err.code="network"; throw err; }
   let out; try{ out=await res.json(); }catch(e){ const err=new Error("The register sent back an unexpected reply. Check the Apps Script deployment."); err.code="network"; throw err; }
-  if(!out.ok){ const err=new Error(out.error||"Something went wrong."); err.code=out.code; if(out.code==="auth") signOut(true); throw err; }
+  if(!out.ok){ const err=new Error(out.error||"Something went wrong."); err.code=out.code; if(out.code==="auth"&&state.session) signOut(true); throw err; }
   return out;
 }
 async function refresh(quiet){
   if(state.demo||!state.session) return;
   try{
     const r=await api("list");
-    state.vehicles=r.vehicles||[]; state.activity=r.activity||[]; state.session.role=r.role;
-    state.canWrite=r.role==="edit"; state.loaded=true; state.dbState="live"; state.syncedAt=new Date();
+    state.vehicles=r.vehicles||[]; state.activity=r.activity||[]; applyUser(r.user); state.loaded=true; state.dbState="live"; state.syncedAt=new Date();
     render();
   }catch(e){
     if(e.code==="auth") return;
@@ -503,13 +521,29 @@ async function refresh(quiet){
     if(!quiet) toast(e.message);
   }
 }
+const SKEY="rabotec-fleet-session-v2";
 const store={
-  get(){ try{ return JSON.parse(localStorage.getItem("rabotec-fleet-session")||"null"); }catch(e){ return null; } },
-  set(v){ try{ v?localStorage.setItem("rabotec-fleet-session",JSON.stringify(v)):localStorage.removeItem("rabotec-fleet-session"); }catch(e){} },
+  get(){ for(const st of [()=>localStorage,()=>sessionStorage]){ try{ const v=JSON.parse(st().getItem(SKEY)||"null"); if(v&&v.token) return v; }catch(e){} } return null; },
+  set(v,remember){ for(const st of [()=>localStorage,()=>sessionStorage]){ try{ st().removeItem(SKEY); }catch(e){} }
+    if(v){ try{ (remember?localStorage:sessionStorage).setItem(SKEY,JSON.stringify(v)); }catch(e){} } },
+  remembered(){ try{ return !!localStorage.getItem(SKEY); }catch(e){ return false; } },
 };
+function applyUser(u){
+  if(!u||!state.session) return;
+  Object.assign(state.session,{email:u.email,name:u.name,role:u.role});
+  state.canWrite = u.role==="editor"||u.role==="admin";
+  store.set(state.session, store.remembered());
+  if(state.view==="team" && u.role!=="admin") state.view="overview";
+}
+const isAdmin = () => !!state.session && state.session.role==="admin" && !state.demo;
+function startSession(r, remember){
+  state.session={token:r.token}; store.set(state.session, remember); applyUser(r.user); store.set(state.session, remember);
+  state.dbState="connecting"; state.view="overview"; render(); refresh(false);
+  toast(`Signed in as ${r.user.name||r.user.email}${r.user.role==="viewer"?" (view only)":""}`);
+}
 function signOut(expired){
-  state.session=null; state.vehicles=[]; state.activity=[]; state.loaded=false; state.dbState="signin"; store.set(null);
-  closeAll(); render(); if(expired) toast("Your access code was not accepted. Sign in again.");
+  state.session=null; state.vehicles=[]; state.activity=[]; state.users=[]; state.usersLoaded=false; state.loaded=false; state.dbState="signin"; store.set(null);
+  closeAll(); render(); if(expired) toast("Your sign-in has ended. Please sign in again.");
 }
 
 function data(){ return state.demo ? sampleFleet() : state.vehicles; }
@@ -565,28 +599,32 @@ function filtered(){
 }
 
 /* ───────── navigation ───────── */
-const VIEWS = [
+const VIEW_LIST = [
   {id:"overview", label:"Overview", icon:I.grid},
   {id:"register", label:"Vehicle register", icon:I.truck},
   {id:"renewals", label:"Renewal queue", icon:I.clock},
   {id:"activity", label:"Activity log", icon:I.hist},
+  {id:"team", label:"Team", icon:I.users, admin:true},
 ];
+const views = () => VIEW_LIST.filter(v=>!v.admin||isAdmin());
 function initials(n){ return String(n||"?").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("")||"?"; }
 function go(view, filters){
+  if(view==="team") state.usersLoaded=false;
   state.view=view;
   state.f={q:"",group:"",site:"",status:"",archived:false, ...(filters||{})};
   render(); window.scrollTo({top:0});
 }
 function renderNav(){
   const due=renewalItems(data()).filter(x=>x.st!=="due").length;
-  const html=VIEWS.map(v=>`<button data-go="${v.id}" ${state.view===v.id?'aria-current="page"':""}>${v.icon}<span>${v.label}</span>${v.id==="renewals"&&due?`<span class="count">${due}</span>`:""}</button>`).join("");
+  const html=views().map(v=>`<button data-go="${v.id}" ${state.view===v.id?'aria-current="page"':""}>${v.icon}<span>${v.label}</span>${v.id==="renewals"&&due?`<span class="count">${due}</span>`:""}</button>`).join("");
   $("#nav-main").innerHTML=`<div class="nav-label">Workspace</div>${html}`;
   const act=active();
   $("#nav-groups").innerHTML=`<div class="nav-label">Vehicle groups</div>`+GROUPS.map(g=>`<button data-go="register" data-group="${g.code}" ${state.view==="register"&&state.f.group===g.code?'aria-current="page"':""}><span class="code">${g.code}</span><span>${g.name}</span><span class="qty">${act.filter(v=>v.group===g.code).length}</span></button>`).join("");
-  $("#tabs").innerHTML=VIEWS.map(v=>`<button data-go="${v.id}" ${state.view===v.id?'aria-current="page"':""}>${v.label}${v.id==="renewals"&&due?` · ${due}`:""}</button>`).join("");
+  $("#tabs").innerHTML=views().map(v=>`<button data-go="${v.id}" ${state.view===v.id?'aria-current="page"':""}>${v.label}${v.id==="renewals"&&due?` · ${due}`:""}</button>`).join("");
   const live=state.dbState==="live";
-  $("#rail-foot").innerHTML=`${state.session?`<div class="who"><span class="brand-mark" style="width:26px;height:26px;font-size:12px;border-radius:50%">${esc(initials(state.session.name))}</span><span>${esc(state.session.name)}</span></div>`:""}
-    <div><span class="dot" style="${live?"":"background:var(--due);box-shadow:none"}"></span>${state.demo?"Sample fleet preview":live?(state.canWrite?"Live register · can edit":"Live register · view only"):state.dbState==="connecting"?"Connecting…":"Not connected"}</div>
+  const ROLE_LABEL={admin:"Admin",editor:"Editor",viewer:"Viewer"};
+  $("#rail-foot").innerHTML=`${state.session&&!state.demo?`<div class="who"><span class="brand-mark" style="width:28px;height:28px;font-size:12px;border-radius:50%;background:var(--hi);color:#19232B">${esc(initials(state.session.name||state.session.email))}</span><span style="min-width:0"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(state.session.name||state.session.email)}</span><span style="color:var(--rail-dim)">${ROLE_LABEL[state.session.role]||""}</span></span></div>`:""}
+    <div><span class="dot" style="${live?"":"background:var(--due);box-shadow:none"}"></span>${state.demo?"Sample fleet preview":live?"Live register":state.dbState==="connecting"?"Connecting…":"Not connected"}</div>
     ${state.syncedAt&&!state.demo?`<div>Updated ${state.syncedAt.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})} · <button class="link" data-act="refresh" style="color:var(--rail-dim)">Refresh</button></div>`:""}
     <button class="link" data-act="help" style="color:var(--rail-dim)">How statuses work</button>
     ${state.session?`<button class="link" data-act="signout" style="color:var(--rail-dim)">Sign out</button>`:""}`;
@@ -605,7 +643,7 @@ function banners(){
   let b="";
   if(state.demo) b+=`<div class="banner demo"><span class="grow"><b>Sample fleet.</b> These are made-up vehicles to show how the register works. Nothing here is saved.</span><button class="btn sm" data-act="demo-off">Back to live register</button></div>`;
   else if(state.dbState==="offline") b+=`<div class="banner warn"><span class="grow"><b>Can't reach the register right now.</b> ${state.vehicles.length?"You're seeing the last records loaded. ":""}Check the network connection and try again.</span><button class="btn sm" data-act="refresh">Try again</button></div>`;
-  else if(state.dbState==="live" && !state.canWrite) b+=`<div class="banner"><span class="grow"><b>View only.</b> You can see every record and export it. Ask the HSE office for the editing code to add or update vehicles.</span></div>`;
+  else if(state.dbState==="live" && !state.canWrite) b+=`<div class="banner"><span class="grow"><b>View only.</b> You can see every record and export it. Ask an admin to give you Editor access if you need to add or update vehicles.</span></div>`;
   return b;
 }
 
@@ -628,7 +666,7 @@ function viewOverview(){
   </section>`;
   h+=`<section class="grid2">
     <article class="panel chart"><div class="panel-h"><div><h2>Expiry horizon</h2><p>Documents expiring each week for the next 12 weeks, with anything already overdue</p></div>
-      <div class="legend"><span><i style="background:var(--accent)"></i>Roadworthy</span><span><i style="background:var(--due)"></i>Insurance</span></div></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Roadworthy</span><span><i style="background:var(--hi)"></i>Insurance</span></div></div>
       <div class="cw">${horizonChart(list)}</div></article>
     <article class="panel"><div class="panel-h"><div><h2>Do not dispatch</h2><p>${activeStop?`${activeStop} still marked Active on the pits`:"Vehicles with an expired or unrecorded document"}</p></div>${stopList.length?`<button class="link" data-go="renewals">Renewal queue →</button>`:""}</div>
       ${stopList.length?`<div class="stoplist">${stopList.slice(0,6).map(v=>{const bad=[["Roadworthy",v.rwExp],["Insurance",v.insExp]].filter(([,d])=>["expired","missing"].includes(docStatus(d))).map(([n,d])=>`${n} ${docStatus(d)==="missing"?"not recorded":relText(d)}`).join(" · ");
@@ -656,7 +694,7 @@ function horizonChart(list){
     const x=L+cw*i+(cw-bw)/2, tot=b.rw+b.ins;
     if(i===0&&tot) g+=`<rect x="${L+cw*i+2}" y="${T}" width="${cw-4}" height="${H-T-B}" fill="var(--bad-soft)" rx="4"/>`;
     if(b.rw) g+=`<rect x="${x}" y="${y(b.rw)}" width="${bw}" height="${y(0)-y(b.rw)}" fill="var(--accent)" rx="2"><title>${b.label}: ${b.rw} roadworthy</title></rect>`;
-    if(b.ins) g+=`<rect x="${x}" y="${y(tot)}" width="${bw}" height="${y(b.rw)-y(tot)}" fill="var(--due)" rx="2"><title>${b.label}: ${b.ins} insurance</title></rect>`;
+    if(b.ins) g+=`<rect x="${x}" y="${y(tot)}" width="${bw}" height="${y(b.rw)-y(tot)}" fill="var(--hi)" rx="2"><title>${b.label}: ${b.ins} insurance</title></rect>`;
     if(tot) g+=`<text x="${x+bw/2}" y="${y(tot)-5}" text-anchor="middle" font-size="11" font-weight="600" fill="${i===0?"var(--bad)":"var(--ink)"}" font-family="IBM Plex Mono,monospace">${tot}</text>`;
     if(i===0||(i>1&&i%2===0)) g+=`<text x="${L+cw*i+cw/2}" y="${H-B+18}" text-anchor="middle" font-size="11" fill="${i===0?"var(--bad)":"var(--ink-3)"}" font-weight="${i===0?600:400}">${i===0?"Overdue":b.label}</text>`;
   });
@@ -754,44 +792,130 @@ function render(){
   renderNav();
   const ae=document.activeElement, keepQ=ae&&ae.id==="q"?[ae.selectionStart,ae.selectionEnd]:null;
   const c=$("#canvas");
-  c.innerHTML = state.view==="overview"?viewOverview():state.view==="register"?viewRegister():state.view==="renewals"?viewRenewals():viewActivity();
+  if(state.view==="team"&&!isAdmin()) state.view="overview";
+  c.innerHTML = state.view==="overview"?viewOverview():state.view==="register"?viewRegister():state.view==="renewals"?viewRenewals():state.view==="team"?viewTeam():viewActivity();
   if(state.view==="register"&&$("#reg-results")) $("#reg-results").innerHTML=registerResults();
   if(keepQ&&$("#q")){ const q=$("#q"); q.focus(); try{ q.setSelectionRange(keepQ[0],keepQ[1]); }catch{} }
   const d=$("#dlg-detail"); if(d.open&&d.dataset.id) openDetail(d.dataset.id,true);
 }
 
-function renderSignin(){
+let signinMode="login", signinEmail="";
+function renderSignin(force){
   const c=$("#canvas");
-  if($("#signin-form")) return;
-  c.innerHTML=`<div class="signin"><form id="signin-form" novalidate>
-    <div class="brand"><span class="brand-mark">RB</span><div><b style="color:var(--ink)">Rabotec</b><small style="color:var(--ink-3)">Fleet safety</small></div></div>
-    <div><h1>Staff sign in</h1><p style="margin-top:6px">Roadworthy and insurance register for the Abore and Esaase fleet.</p></div>
-    ${API_READY?"":`<div class="formerr">This copy isn't connected to its Google Sheet yet. Paste the Apps Script web app URL into API_URL in index.html. You can still preview it with sample vehicles.</div>`}
-    <div class="fld"><label for="si-name">Your name</label><input id="si-name" autocomplete="name" maxlength="60" required placeholder="e.g. Emmanuel Nyarko"><small>Shown against every change you make.</small></div>
-    <div class="fld"><label for="si-key">Access code</label><input id="si-key" type="password" autocomplete="current-password" required><small>Get this from the HSE office.</small></div>
+  if($("#signin-form")&&!force) return;
+  const mode=signinMode;
+  const tabs=`<div class="signin-tabs" role="tablist"><button type="button" role="tab" data-si="login" aria-selected="${mode==="login"}">Sign in</button><button type="button" role="tab" data-si="code" aria-selected="${mode!=="login"}">First time or forgot password</button></div>`;
+  let body="";
+  if(mode==="login") body=`
+    <div class="fld"><label for="si-email">Email</label><input id="si-email" type="email" autocomplete="username" required maxlength="120" value="${esc(signinEmail)}"></div>
+    <div class="fld"><label for="si-pass">Password</label><input id="si-pass" type="password" autocomplete="current-password" required></div>
     <label class="remember"><input type="checkbox" id="si-remember" checked> Keep me signed in on this device</label>
     <div class="formerr" id="si-err" hidden role="alert"></div>
-    <button class="btn primary" id="si-btn" style="justify-content:center" ${API_READY?"":"disabled"}>Sign in</button>
+    <button class="btn primary" id="si-btn" style="justify-content:center" ${API_READY?"":"disabled"}>Sign in</button>`;
+  else if(mode==="code") body=`
+    <p style="margin:0">Enter the email address the HSE office added to the team. We'll email you a 6-digit code so you can create your password.</p>
+    <div class="fld"><label for="si-email">Email</label><input id="si-email" type="email" autocomplete="username" required maxlength="120" value="${esc(signinEmail)}"></div>
+    <div class="formerr" id="si-err" hidden role="alert"></div>
+    <button class="btn primary" id="si-btn" style="justify-content:center" ${API_READY?"":"disabled"}>Email me a code</button>
+    <button type="button" class="link" data-si="set" style="align-self:center">I already have a code</button>`;
+  else body=`
+    <div class="okmsg" id="si-ok">${signinEmail?`If a code was sent, it went to <b>${esc(signinEmail)}</b>. Check your spam folder too. It expires in 15 minutes.`:"Enter the code from your email."}</div>
+    ${signinEmail?"":`<div class="fld"><label for="si-email">Email</label><input id="si-email" type="email" autocomplete="username" required maxlength="120"></div>`}
+    <div class="fld"><label for="si-code">6-digit code</label><input id="si-code" class="code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required></div>
+    <div class="fld"><label for="si-name">Your full name</label><input id="si-name" autocomplete="name" maxlength="60" placeholder="e.g. Emmanuel Nyarko"><small>Shown against every change you make.</small></div>
+    <div class="fld"><label for="si-pass">New password</label><input id="si-pass" type="password" autocomplete="new-password" minlength="8" required><small>At least 8 characters. Don't reuse your email password.</small></div>
+    <div class="fld"><label for="si-pass2">Confirm password</label><input id="si-pass2" type="password" autocomplete="new-password" required></div>
+    <label class="remember"><input type="checkbox" id="si-remember" checked> Keep me signed in on this device</label>
+    <div class="formerr" id="si-err" hidden role="alert"></div>
+    <button class="btn primary" id="si-btn" style="justify-content:center">Save password and sign in</button>
+    <button type="button" class="link" data-si="code" style="align-self:center">Send a new code</button>`;
+  c.innerHTML=`<div class="signin"><form id="signin-form" novalidate>
+    <div class="brand"><span class="brand-logo" style="box-shadow:0 0 0 1px var(--line)"><img src="https://rabotecgroup.com/images/header/160x40-px-logo.jpg" alt="Rabotec" width="104" height="26" onerror="this.parentNode.classList.add('fallback')"></span><div><small style="margin-top:0;color:var(--ink-3)">Fleet safety</small></div></div>
+    <div><h1>${mode==="login"?"Staff sign in":mode==="code"?"Get a sign-in code":"Create your password"}</h1><p style="margin-top:6px">Roadworthy and insurance register for the Abore and Esaase fleet.</p></div>
+    ${API_READY?"":`<div class="formerr">This copy isn't connected to its Google Sheet yet. Paste the Apps Script web app URL into API_URL in index.html. You can still preview it with sample vehicles.</div>`}
+    ${tabs}${body}
     <button type="button" class="btn" data-act="demo-on" style="justify-content:center">Preview with a sample fleet</button>
   </form></div>`;
-  const f=$("#signin-form");
+  const f=$("#signin-form"), err=$("#si-err"), btn=$("#si-btn");
+  const fail=m=>{ err.textContent=m; err.hidden=false; btn.disabled=false; btn.textContent=btn.dataset.label; };
+  btn.dataset.label=btn.textContent;
   f.addEventListener("submit",async e=>{
-    e.preventDefault();
-    const name=$("#si-name").value.replace(/\s+/g," ").trim(), key=$("#si-key").value, err=$("#si-err");
-    err.hidden=true;
-    if(name.length<2){ err.textContent="Enter your name."; err.hidden=false; $("#si-name").focus(); return; }
-    if(!key){ err.textContent="Enter the access code."; err.hidden=false; $("#si-key").focus(); return; }
-    const btn=$("#si-btn"); btn.disabled=true; btn.textContent="Checking…";
-    state.session={name,key};
+    e.preventDefault(); err.hidden=true;
+    const emailEl=$("#si-email"); const email=emailEl?emailEl.value.trim().toLowerCase():signinEmail;
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ fail("Enter a valid email address."); emailEl&&emailEl.focus(); return; }
+    signinEmail=email; btn.disabled=true; btn.textContent="Please wait…";
     try{
-      const r=await api("ping");
-      state.session.role=r.role; if($("#si-remember").checked) store.set(state.session);
-      state.dbState="connecting"; render(); await refresh();
-      toast(r.role==="edit"?`Signed in as ${name}`:`Signed in as ${name} (view only)`);
-    }catch(ex){ state.session=null; err.textContent=ex.message; err.hidden=false; btn.disabled=false; btn.textContent="Sign in"; }
+      if(mode==="login"){
+        const pw=$("#si-pass").value; if(!pw){ fail("Enter your password."); return; }
+        const r=await api("login",{email,password:pw}); startSession(r,$("#si-remember").checked);
+      } else if(mode==="code"){
+        await api("requestCode",{email}); signinMode="set"; renderSignin(true);
+      } else {
+        const code=$("#si-code").value.replace(/\s/g,""), pw=$("#si-pass").value, pw2=$("#si-pass2").value, name=$("#si-name").value.replace(/\s+/g," ").trim();
+        if(!/^\d{6}$/.test(code)){ fail("Enter the 6-digit code from the email."); return; }
+        if(pw.length<8){ fail("Use a password of at least 8 characters."); return; }
+        if(pw!==pw2){ fail("The two passwords don't match."); return; }
+        const r=await api("setPassword",{email,code,password:pw,name}); signinMode="login"; startSession(r,$("#si-remember").checked);
+      }
+    }catch(ex){
+      if(ex.code==="nopassword"){ signinMode="code"; renderSignin(true); const e2=$("#si-err"); e2.textContent=ex.message; e2.hidden=false; return; }
+      if(ex.code==="wait"&&mode==="code"){ signinMode="set"; renderSignin(true); return; }
+      fail(ex.message);
+    }
   });
-  setTimeout(()=>$("#si-name").focus(),30);
+  const first=f.querySelector("input:not([type=checkbox]):not([value]),input[value='']")||f.querySelector("input");
+  setTimeout(()=>{ const el=mode==="set"?$("#si-code"):($("#si-email")&&!$("#si-email").value?$("#si-email"):($("#si-pass")||$("#si-email"))); el&&el.focus(); },30);
 }
+
+/* ───────── team (admins) ───────── */
+async function loadUsers(){
+  try{ const r=await api("users"); state.users=r.users||[]; state.usersLoaded=true; if(state.view==="team") render(); }
+  catch(e){ state.usersLoaded=true; toast(e.message); }
+}
+function viewTeam(){
+  if(!state.usersLoaded){ loadUsers(); }
+  const ROLE_HELP={admin:"Manages the team and edits records",editor:"Adds and updates vehicles",viewer:"Looks and exports only"};
+  let h=header("Access","Team","Everyone who can sign in, and what they can do. Add a person by email; they get an invitation and create their own password.",`<button class="btn" data-act="users-refresh">${I.hist}Refresh</button>`);
+  h+=`<section class="panel"><div class="panel-h"><div><h2>Add a person</h2><p>They can sign in once they've set a password from the emailed code.</p></div></div>
+    <form class="team-add" id="team-add" novalidate>
+      <div class="fld"><label for="ta-email">Email</label><input id="ta-email" type="email" required maxlength="120" placeholder="name@example.com"></div>
+      <div class="fld"><label for="ta-name">Name (optional)</label><input id="ta-name" maxlength="60"></div>
+      <div class="fld"><label for="ta-role">Role</label><select id="ta-role"><option value="viewer">Viewer</option><option value="editor" selected>Editor</option><option value="admin">Admin</option></select></div>
+      <button class="btn primary" id="ta-btn">${I.plus}Add and invite</button>
+    </form>
+    <div class="formerr" id="ta-err" hidden role="alert"></div>
+    <p class="muted" style="margin:0;font-size:12.5px">Viewer: ${ROLE_HELP.viewer}. Editor: ${ROLE_HELP.editor}. Admin: ${ROLE_HELP.admin}.</p></section>`;
+  if(!state.usersLoaded) return h+loadingBlock();
+  const order={admin:0,editor:1,viewer:2};
+  const list=[...state.users].sort((a,b)=>(b.owner-a.owner)||(order[a.role]-order[b.role])||String(a.name||a.email).localeCompare(b.name||b.email));
+  const stLabel={active:"Active",invited:"Invited",disabled:"Switched off"};
+  const when=iso=>{ if(!iso) return "Never"; const d=new Date(iso); return Number.isNaN(d.getTime())?"—":d.toLocaleString("en-GB",{timeZone:"UTC",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}); };
+  h+=`<div class="summary-line"><span><b>${list.length}</b> ${list.length===1?"person":"people"} · ${list.filter(u=>u.status==="active").length} active · ${list.filter(u=>u.status==="invited").length} invited</span><span>Times in Ghana (GMT)</span></div>
+  <div class="tablewrap"><table><thead><tr><th>Person</th><th>Role</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead><tbody>
+  ${list.map(u=>{ const me=u.email===state.session.email; const locked=u.owner||me;
+    return `<tr style="cursor:default"><td><b>${esc(u.name||"(name not set yet)")}</b>${u.owner?'<span class="owner-tag">Owner</span>':""}${me?' <span class="muted">(you)</span>':""}<div class="fleetno" style="margin-top:3px">${esc(u.email)}</div></td>
+      <td>${locked?`<b>${u.role==="admin"?"Admin":u.role}</b>`:`<select class="role-sel" data-role-for="${esc(u.email)}" aria-label="Role for ${esc(u.email)}">${["viewer","editor","admin"].map(r=>`<option value="${r}" ${u.role===r?"selected":""}>${r[0].toUpperCase()+r.slice(1)}</option>`).join("")}</select>`}</td>
+      <td><span class="chip op st-${esc(u.status)}">${stLabel[u.status]||esc(u.status)}</span></td>
+      <td class="num">${when(u.lastLogin)}</td>
+      <td style="text-align:right;white-space:nowrap">${locked?"":`<button class="btn sm" data-status-for="${esc(u.email)}" data-to="${u.status==="disabled"?"active":"disabled"}">${u.status==="disabled"?"Switch on":"Switch off"}</button> <button class="btn sm danger" data-remove="${esc(u.email)}">Remove</button>`}</td></tr>`;}).join("")}
+  </tbody></table></div>
+  <p class="muted" style="font-size:12.5px;margin:0">Switching someone off signs them out on every device straight away and keeps them on the list. Removing deletes their account; their past changes stay in the activity log.</p>`;
+  return h+footer();
+}
+async function teamAction(fn, okMsg){
+  try{ const r=await fn(); if(okMsg) toast(okMsg(r)); await loadUsers(); }
+  catch(e){ toast(e.message); render(); }
+}
+document.addEventListener("submit",e=>{
+  if(e.target.id!=="team-add") return;
+  e.preventDefault();
+  const email=$("#ta-email").value.trim().toLowerCase(), name=$("#ta-name").value.trim(), role=$("#ta-role").value, errB=$("#ta-err"), btn=$("#ta-btn");
+  errB.hidden=true;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ errB.textContent="Enter a valid email address."; errB.hidden=false; return; }
+  if(state.users.some(u=>u.email===email)){ errB.textContent="That person is already on the team. Change their role in the list below."; errB.hidden=false; return; }
+  btn.disabled=true; btn.textContent="Adding…";
+  teamAction(()=>api("userSave",{email,name,role,invite:true}), r=>r.invited?`${email} added. Invitation sent.`:`${email} added.`);
+});
 
 /* ───────── detail drawer ───────── */
 function sticker(date,label){
@@ -1059,7 +1183,7 @@ function openHelp(){
     <p style="margin:0"><span class="chip s-missing">Missing</span> A document date hasn't been entered. Treat as not road-legal until the document is checked and recorded.</p>
     <p style="margin:0"><span class="chip s-due">Due soon</span> A document expires today or within the next ${WINDOW} days. Book the DVLA test or insurance renewal now.</p>
     <p style="margin:0"><span class="chip s-valid">Valid</span> Both documents run for more than ${WINDOW} more days.</p>
-    <p style="margin:0" class="muted">Dates use Ghana time (GMT). Every save records who made it and what changed, in the vehicle's history and the activity log. If two people edit the same vehicle at once, the second save is stopped so nothing is overwritten. Archive vehicles that leave the fleet; their history is kept.</p>
+    <p style="margin:0" class="muted">Dates use Ghana time (GMT). Every save records the signed-in person and what changed, in the vehicle's history and the activity log. If two people edit the same vehicle at once, the second save is stopped so nothing is overwritten. Archive vehicles that leave the fleet; their history is kept.</p>
   </div></div>`;
   dlg.showModal();
 }
@@ -1075,6 +1199,11 @@ document.addEventListener("click",e=>{
   if(t.dataset.archive){ toggleArchive(t.dataset.archive); return; }
   if(t.dataset.sort){ const k=t.dataset.sort; state.sort = state.sort.key===k?{key:k,dir:-state.sort.dir}:{key:k,dir:1}; $("#reg-results").innerHTML=registerResults(); return; }
   if(t.dataset.arch!==undefined){ state.f.archived=t.dataset.arch==="1"; render(); return; }
+  if(t.dataset.si){ signinMode=t.dataset.si; const em=$("#si-email"); if(em) signinEmail=em.value.trim().toLowerCase(); renderSignin(true); return; }
+  if(t.dataset.statusFor){ const em=t.dataset.statusFor, to=t.dataset.to; t.disabled=true; teamAction(()=>api("userStatus",{email:em,status:to}), ()=>to==="disabled"?`${em} switched off and signed out.`:`${em} switched back on.`); return; }
+  if(t.dataset.remove){ const em=t.dataset.remove;
+    if(t.dataset.confirm!=="1"){ t.dataset.confirm="1"; t.textContent="Confirm remove"; setTimeout(()=>{ if(t.isConnected){ t.dataset.confirm=""; t.textContent="Remove"; } },4000); return; }
+    t.disabled=true; teamAction(()=>api("userRemove",{email:em}), ()=>`${em} removed.`); return; }
   const a=t.dataset.act;
   if(a==="add") openEdit(null);
   else if(a==="import") openImport();
@@ -1085,12 +1214,14 @@ document.addEventListener("click",e=>{
   else if(a==="demo-off"){ state.demo=false; closeAll(); render(); }
   else if(a==="refresh"){ refresh(false).then(()=>{ if(state.dbState==="live") toast("Register up to date"); }); }
   else if(a==="signout"){ signOut(false); }
+  else if(a==="users-refresh"){ state.usersLoaded=false; render(); }
   else if(a==="clear"){ go("register"); }
 });
 document.addEventListener("keydown",e=>{ if(e.key==="Enter"){ const tr=e.target.closest&&e.target.closest("tr[data-open]"); if(tr) openDetail(tr.dataset.open); } });
 document.addEventListener("input",e=>{ if(e.target.id==="q"){ state.f.q=e.target.value; $("#reg-results").innerHTML=registerResults(); } });
 document.addEventListener("change",e=>{
   const m={"f-group":"group","f-site":"site","f-status":"status"}[e.target.id];
+  if(e.target.dataset&&e.target.dataset.roleFor){ const em=e.target.dataset.roleFor, role=e.target.value; teamAction(()=>api("userSave",{email:em,role,invite:false}), ()=>`${em} is now ${role==="admin"?"an admin":"a"+(role==="editor"?"n editor":" viewer")}.`); return; }
   if(m){ state.f[m]=e.target.value; if(m==="group") renderNav(); $("#reg-results").innerHTML=registerResults(); }
 });
 function closeAll(){ document.querySelectorAll("dialog[open]").forEach(d=>d.close()); }

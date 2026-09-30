@@ -1,42 +1,50 @@
-# Rabotec Fleet Safety — setup (GitHub Pages + Google Sheet)
+# Rabotec Fleet Safety — setup and administration
 
-Takes about 15 minutes. You need the Google account that owns the Sheet and your GitHub account.
+The app has three parts:
 
-## 1. Google Sheet + Apps Script (the backend)
+- **`index.html`**: the web page, hosted by GitHub Pages at https://solutionwealth.github.io/rabotec-fleet-safety/
+- **`Code.gs`**: the Google Apps Script backend (project **Rabotec Fleet Safety API** on script.google.com, account nyarko.emmanuel.va@gmail.com)
+- **The Google Sheet "Rabotec Fleet Safety Register"**, which has three tabs:
+  - **Vehicles**: one row per vehicle
+  - **Activity**: every change, and who made it
+  - **Users**: who can sign in
 
-1. Open the Google Sheet you want to use. It can be the SafeReport Sheet or a new one. The script only touches its own **Vehicles** and **Activity** tabs.
-2. Go to **Extensions ▸ Apps Script**.
-   - If the Sheet already has a script (for example SafeReport's), click **+ ▸ Script** to add a new file called `Fleet`. Otherwise, clear the default `Code.gs`.
-   - If you add it next to SafeReport, both files share one project. Check that SafeReport's file doesn't already have functions named `doGet`/`doPost`. If it does, use a **separate Sheet** for the fleet instead (simplest).
-3. Paste in all of `Code.gs`.
-4. At the top, edit `SETTINGS`:
-   - `EDIT_CODE`: the code staff type to add or update vehicles. Use at least 10 characters that are hard to guess.
-   - `VIEW_CODE`: optional read-only code, for supervisors who only need to look.
-   - `ALERT_EMAILS`: for example `'hse@rabotec.com, emmanuel@...'`. Leave it as `''` for no email.
-   - `APP_URL`: fill this in after step 2.3.
-5. Click **Save**. In the function dropdown, choose **setup** and click **Run**, then approve the permissions. The Vehicles and Activity tabs will appear.
-6. Click **Deploy ▸ New deployment ▸ ⚙ ▸ Web app**:
-   - Execute as: **Me**
-   - Who has access: **Anyone**. This only lets the app reach the script; the access code is still checked on every request.
-   - Click **Deploy** and copy the **Web app URL**. It ends in `/exec`.
-7. Optional daily email: choose **setupDailyEmail** and click **Run**. From then on, an email goes out at 07:00 GMT whenever something is expired, missing or due within 30 days.
+## Signing in
 
-## 2. GitHub Pages (the front end)
+Everyone signs in with their own email address and password. Nobody shares a code.
 
-1. Open `index.html` and find `const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";`. Paste your `/exec` URL between the quotes.
-2. On GitHub, create a repository (for example `rabotec-fleet-safety`) and upload `index.html`.
-3. Go to **Settings ▸ Pages ▸ Source: Deploy from a branch ▸ main / (root) ▸ Save**. After a minute the site is live at `https://<username>.github.io/rabotec-fleet-safety/`.
-4. Put that link into `APP_URL` in Code.gs. Then click **Deploy ▸ Manage deployments ▸ ✎ ▸ Version: New version ▸ Deploy**. This keeps the same URL.
+1. **An admin adds the person.** On the **Team** page, the admin enters their email and picks a role. The person gets an invitation email.
+   - **Viewer**: can look and export only
+   - **Editor**: can add and update vehicles
+   - **Admin**: can also manage the team
+2. **The person creates their password.** They open the app, choose **First time or forgot password**, and enter their email. They receive a 6-digit code, enter it, and choose a password of at least 8 characters.
+3. **After that**, they sign in with their email and password.
 
-## 3. Move the old records across
+Some safeguards to know about:
 
-1. In the old ChatGPT-hosted app, click **Export CSV**.
-2. In the new app, sign in with the editing code, click **Import CSV** and choose that file. You'll see a preview of what will be added, updated or skipped before anything is saved.
+- **Wrong passwords:** after 5 wrong passwords, that account is locked for 15 minutes. **Forgot password** unlocks it by setting a new one.
+- **Switching someone off:** **Switch off** on the Team page signs that person out on every device immediately. **Remove** deletes their account; their past changes stay in the Activity log.
+- **The owner:** the owner (`OWNER_EMAIL`) is always an admin and can't be switched off or removed.
+- **Where emails come from:** codes and invitations are sent from the owner's Gmail, which allows about 100 emails a day.
 
-## Good to know
+## Settings (top of Code.gs)
 
-- **Whenever you change Code.gs**, redeploy with **Manage deployments ▸ Edit ▸ New version**. If you use "New deployment" instead, the URL changes and you'd have to update `index.html`.
-- **To change the access code**, edit `EDIT_CODE` and redeploy. Everyone gets signed out and has to use the new code.
-- **Don't edit the Vehicles tab by hand.** Use the app, so every change is checked and logged in Activity. Reading the Sheet, filtering it and building charts from it are all fine.
-- **Who made a change** is recorded from the name each person types when they sign in. Anyone with the editing code can type any name, so share the code only with the people who update records.
-- **The `index.html` on GitHub is public**, but it contains no records and no codes. All data stays in your Google Sheet behind the access code.
+| Setting | What it does |
+|---|---|
+| `OWNER_EMAIL` | The permanent admin. |
+| `ALLOW_DOMAINS` | Optional. For example `'rabotecghana.com'` lets anyone with that email domain create a Viewer account without being added first. Use `''` to turn it off. |
+| `ALERT_EMAILS` | Addresses for the 07:00 GMT daily expiry email. Run `setupDailyEmail` once to switch it on. |
+| `APP_URL` | The link used in emails. |
+| `SHEET_ID` | The ID of the register Sheet. |
+| `SESSION_DAYS` | How long someone stays signed in on a device. |
+
+## After any change to Code.gs
+
+1. Save with **Ctrl + S**.
+2. Go to **Deploy ▸ Manage deployments ▸ ✎ Edit ▸ Version: New version ▸ Deploy**.
+
+This keeps the same web address, so `index.html` doesn't need changing. Don't use **New deployment**: that creates a new address. `ALERT_EMAILS` is the only exception; it works as soon as you save.
+
+## Don't edit by hand
+
+Don't edit the **Users** tab by hand. The password columns are scrambled hashes, and changing them breaks sign-in. Use the Team page instead. You can read, filter and chart the Vehicles tab freely, but make changes through the app so they're checked and logged.
