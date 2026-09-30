@@ -590,6 +590,8 @@ async function api(action, payload){
       text=await res.text();
     }catch(e){ lastErr="network"; continue; }
     let out; try{ out=JSON.parse(text); }catch(e){ lastErr="reply"; continue; }
+    // Google now and then answers a POST with the GET status reply instead of running it: ask again (same request ID, so nothing runs twice)
+    if(out&&out.app){ lastErr="reply"; continue; }
     if(!out.ok){ const err=new Error(out.error||"Something went wrong."); err.code=out.code; if(out.code==="auth"&&state.session) signOut(true); throw err; }
     return out;
   }
