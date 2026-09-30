@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#164C9D">
-<meta name="description" content="Rabotec DVLA roadworthy certificate and vehicle insurance register for the Abore and Esaase fleet.">
+<meta name="description" content="Rabotec asset register with DVLA roadworthy certificates, insurance, 2-week red-flag alerts and PowerPoint reports.">
 <title>Rabotec DVLA &amp; Insurance Register</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23164C9D'/%3E%3Crect y='26' width='32' height='6' fill='%23F7941D'/%3E%3Ctext x='16' y='20' font-family='Arial' font-weight='700' font-size='14' text-anchor='middle' fill='%23fff'%3ERB%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -357,6 +357,36 @@ dialog.drawer{margin:0 0 0 auto;height:100vh;max-height:100vh;border-radius:14px
 .st-active{color:var(--ok);background:var(--ok-soft)}.st-invited{color:var(--due);background:var(--due-soft)}.st-disabled{color:var(--ink-3);background:var(--surface-2)}
 .owner-tag{font:600 11px/1 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--hi);margin-left:6px}
 @media (max-width:720px){.team-add{grid-template-columns:minmax(0,1fr)}}
+/* v3: assets, 2-week red flags, reports */
+:root{--bad-deep:#7a1712}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bad-deep:#a3261d}}
+:root[data-theme="dark"]{--bad-deep:#a3261d}
+.s-red{color:#fff;background:var(--bad)}.s-red::before{display:none}
+.s-expired{color:#fff;background:var(--bad-deep)}.s-expired::before{background:#fff}
+.s-na{color:var(--ink-3);background:var(--surface-2)}
+.chip svg{flex:none}
+.t-red{color:var(--bad);font-weight:600}.t-na{color:var(--ink-3)}
+.banner.flag{background:var(--bad);color:#fff;border-color:transparent}
+.banner.flag .btn{color:var(--ink)}
+tr.flagrow td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
+.vcard.flagrow{border-left:4px solid var(--bad)}
+.ritem.flagged{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+.groups{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.sites{grid-template-columns:repeat(2,minmax(0,1fr))}
+.sites .site{border:0;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.sites .site:hover{outline:1px solid var(--ink-3)}
+.code-pill{font:600 12px/1 var(--f-mono);color:var(--accent);background:var(--accent-soft);padding:4px 6px;border-radius:5px}
+table.rt{min-width:760px}
+th.n,td.n{text-align:right;font-variant-numeric:tabular-nums}
+.rsum{display:grid;grid-template-columns:minmax(0,1.2fr) auto auto;gap:18px 26px;align-items:center;border-top:1px solid var(--line);padding-top:16px}
+.rsum h3{font:700 24px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.02em;margin-top:6px}
+.rsum p{margin:4px 0 0;font-size:13px}
+.rsum-k{display:flex;gap:18px;flex-wrap:wrap}
+.rsum-k span{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.rsum-k b{font:700 30px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.nav button span:first-child:not(.count){min-width:0}
+@media (max-width:1000px){.rsum{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:720px){.sites{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -374,7 +404,7 @@ dialog.drawer{margin:0 0 0 auto;height:100vh;max-height:100vh;border-radius:14px
       <nav class="tabs" id="tabs"></nav>
     </header>
     <main class="canvas" id="canvas">
-      <div class="head"><div><div class="eyebrow">Fleet compliance</div><h1>Fleet overview</h1><p>Loading the shared vehicle register…</p></div></div>
+      <div class="head"><div><div class="eyebrow">Fleet compliance</div><h1>Fleet overview</h1><p>Loading the shared asset register…</p></div></div>
       <div class="panel"><div class="skel" style="width:40%"></div><div class="skel"></div><div class="skel" style="width:70%"></div></div>
     </main>
   </div>
@@ -397,43 +427,65 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyg0lP03eFrNq41Iif_pPcJ
 /* ════════════════════════════ */
 const API_READY = /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(API_URL);
 const REFRESH_MS = 90000;
+const PPTX_URL = "https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js";
+const PPTX_SRI = "sha384-Cck14aA9cifjYolcnjebXRfWGkz5ltHMBiG4px/j8GS+xQcb7OhNQWZYyWjQ+UwQ";
 
 /* ───────── constants ───────── */
-const GROUPS = [
-  {code:"LV",  name:"Light vehicles"},
-  {code:"DT",  name:"Dump trucks"},
-  {code:"ADT", name:"Articulated dump trucks"},
-  {code:"ST",  name:"Service trucks"},
-  {code:"LB",  name:"Lowbeds"},
+const CATS = [
+  {id:"LVB",   name:"Light vehicles & buses"},
+  {id:"TRK",   name:"Trucks & trailers"},
+  {id:"HAUL",  name:"Haul trucks"},
+  {id:"EARTH", name:"Earthmoving"},
+  {id:"DRILL", name:"Drilling"},
+  {id:"PLANT", name:"Plant & site equipment"},
+  {id:"OTH",   name:"Other"},
 ];
-const SITES = ["Abore Pit","Esaase Pit","Other"];
-const OPS = ["Active","Under maintenance","Grounded"];
+// Fleet types: code = fleet-number prefix. Keep in step with TYPES in Code.gs.
+const TYPES = [
+  ["LV","Light vehicle","LVB"],["FV","Van","LVB"],["BS","Bus","LVB"],
+  ["CT","Cargo truck","TRK"],["TT","Tipper truck","TRK"],["WT","Water tanker","TRK"],["FT","Fuel tanker","TRK"],["ST","Service truck","TRK"],
+  ["HT","Haulage tractor","TRK"],["FB","Flatbed truck","TRK"],["LB","Low bed","TRK"],
+  ["DT","Rigid dump truck","HAUL"],["AT","Articulated dump truck","HAUL"],
+  ["EX","Excavator","EARTH"],["DZ","Dozer","EARTH"],["GR","Grader","EARTH"],["WL","Wheel loader","EARTH"],["BH","Backhoe loader","EARTH"],
+  ["RC","Roller / compactor","EARTH"],["TH","Telehandler","EARTH"],
+  ["DR","Drill rig","DRILL"],
+  ["DP","Pump","PLANT"],["GS","Generator & site plant","PLANT"],["LT","Lighting tower","PLANT"],["MC","Crushing & screening","PLANT"],["CN","Crane","PLANT"],
+  ["OT","Other","OTH"],
+].map(([code,name,cat])=>({code,name,cat}));
+const TYPE = Object.fromEntries(TYPES.map(t=>[t.code,t]));
+const UNITS = ["Rabotec Mining","Rabotec Project"];
+const OPS = ["Active","Parked","Down","Out of site","Retired","Not confirmed"];
+const RED = 14;                  // red flag: expires within 2 weeks
 const WINDOW = 30;               // renewal window in days
 const FIELDS = {
-  reg:"Registration", fleetNo:"Fleet no.", group:"Group", site:"Site", op:"Operating status",
-  model:"Make / model", responsible:"Responsible person",
-  rwNo:"Roadworthy cert. no.", rwIssue:"Roadworthy issued", rwExp:"Roadworthy expiry",
-  insurer:"Insurer", policyNo:"Policy no.", insExp:"Insurance expiry", notes:"Notes", archived:"Register status"
+  reg:"Registration", fleetNo:"Fleet no.", group:"Fleet type", unit:"Business unit", site:"Site", op:"Operating status",
+  model:"Make / model", responsible:"Responsible person", serialNo:"Chassis / serial no.", engineModel:"Engine model", engineNo:"Engine no.",
+  inRegister:"In asset register", rwNo:"Roadworthy cert. no.", rwIssue:"Roadworthy issued", rwExp:"Roadworthy expiry",
+  insurer:"Insurer", policyNo:"Policy no.", insIssue:"Insurance issued", insExp:"Insurance expiry", notes:"Notes", archived:"Register status",
+  sourceStatus:"Status in source", status:"Status in source", registerStatus:"Status in asset register",
 };
-const DATE_FIELDS = new Set(["rwIssue","rwExp","insExp"]);
+const DATE_FIELDS = new Set(["rwIssue","rwExp","insIssue","insExp"]);
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /* ───────── icons ───────── */
+const svg = (p,w=2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 const I = {
-  grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>',
-  truck:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V6a1 1 0 0 1 1-1h10v12"/><path d="M14 9h4l3 4v4h-2"/><circle cx="7" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/><path d="M9 17.5h6"/></svg>',
-  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-  hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>',
-  users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>',
-  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
-  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
-  down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg>',
-  up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V9m0 0 4 4m-4-4-4 4M5 4h14"/></svg>',
+  grid:svg('<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>'),
+  truck:svg('<path d="M3 17V6a1 1 0 0 1 1-1h10v12"/><path d="M14 9h4l3 4v4h-2"/><circle cx="7" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/><path d="M9 17.5h6"/>'),
+  bell:svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
+  chart:svg('<path d="M4 20V4"/><path d="M4 20h16"/><rect x="7" y="12" width="3" height="5"/><rect x="12" y="8" width="3" height="9"/><rect x="17" y="5" width="3" height="12"/>'),
+  hist:svg('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>'),
+  users:svg('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/>'),
+  plus:svg('<path d="M12 5v14M5 12h14"/>',2.2),
+  search:svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
+  down:svg('<path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/>'),
+  up:svg('<path d="M12 20V9m0 0 4 4m-4-4-4 4M5 4h14"/>'),
   x:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
-  stop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.6 2h6.8L22 8.6v6.8L15.4 22H8.6L2 15.4V8.6z"/><path d="M12 8v5M12 16.5v.01"/></svg>',
-  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>',
-  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
-  help:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/></svg>',
+  stop:svg('<path d="M8.6 2h6.8L22 8.6v6.8L15.4 22H8.6L2 15.4V8.6z"/><path d="M12 8v5M12 16.5v.01"/>',2.2),
+  flag:svg('<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',2.2),
+  check:svg('<path d="m5 12 5 5L20 7"/>',2.4),
+  edit:svg('<path d="M4 20h4L19 9l-4-4L4 16z"/>'),
+  ppt:svg('<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M9 21h6M12 18v3"/><path d="M9 14V8h2.5a2 2 0 0 1 0 4H9"/>'),
 };
 
 /* ───────── date helpers (Ghana = UTC) ───────── */
@@ -441,9 +493,15 @@ const todayISO = () => new Date().toISOString().slice(0,10);
 const dayMs = 86400000;
 const toDay = iso => Date.parse(iso + "T00:00:00Z");
 function daysLeft(iso, ref){ if(!iso) return null; const n = toDay(iso); if(Number.isNaN(n)) return null; return Math.round((n - toDay(ref||state.today))/dayMs); }
-function docStatus(iso, ref){ const d = daysLeft(iso, ref); return d===null?"missing":d<0?"expired":d<=WINDOW?"due":"valid"; }
-function vehStatus(v, ref){ const s=[docStatus(v.rwExp,ref),docStatus(v.insExp,ref)]; return s.includes("expired")?"expired":s.includes("missing")?"missing":s.includes("due")?"due":"valid"; }
-const STATUS_LABEL = {valid:"Valid",due:"Due soon",expired:"Expired",missing:"Missing"};
+function docStatus(iso){ const d = daysLeft(iso); return d===null?"missing":d<0?"expired":d<=RED?"red":d<=WINDOW?"due":"valid"; }
+/* Only road-registered assets (a registration or a document date) need a roadworthy certificate and insurance. */
+const roadAsset = v => !!(v.reg || v.rwExp || v.insExp);
+const inService = v => !v.archived && v.op!=="Retired";
+const RANK = {expired:0,missing:1,red:2,due:3,valid:4,na:5};
+function vehStatus(v){ if(!roadAsset(v)) return "na"; const a=docStatus(v.rwExp), b=docStatus(v.insExp); return RANK[a]<=RANK[b]?a:b; }
+const isFlag = st => st==="expired"||st==="missing"||st==="red";
+const STATUS_LABEL = {expired:"Expired",missing:"Missing",red:"Red flag · 14 days",due:"Due in 30 days",valid:"Valid",na:"No road documents"};
+const STATUS_SHORT = {expired:"Expired",missing:"Missing",red:"≤ 14 days",due:"15–30 days",valid:"Valid",na:"N/A"};
 function fmtDate(iso){ if(!iso) return "Not recorded"; const [y,m,d]=iso.split("-"); return `${d} ${MONTHS[+m-1]} ${y}`; }
 function relText(iso){ const d=daysLeft(iso); if(d===null) return "No date recorded"; if(d<0) return `${-d} day${d===-1?"":"s"} overdue`; if(d===0) return "Expires today"; return `${d} day${d===1?"":"s"} left`; }
 function addDays(iso,n){ return new Date(toDay(iso)+n*dayMs).toISOString().slice(0,10); }
@@ -461,10 +519,15 @@ function parseAnyDate(raw){
 /* ───────── misc helpers ───────── */
 const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const normReg = s => String(s||"").toUpperCase().replace(/\s+/g," ").trim();
+const normFleet = s => String(s||"").toUpperCase().replace(/\s+/g,"");
 const regKey = s => normReg(s).replace(/[\s\-]/g,"");
 const $ = (sel, root=document) => root.querySelector(sel);
-const groupName = code => (GROUPS.find(g=>g.code===code)||{name:code||"—"}).name;
-function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,3600); }
+const typeName = code => (TYPE[code]||{name:code||"—"}).name;
+const catOf = code => (TYPE[code]||{cat:"OTH"}).cat;
+const catName = id => (CATS.find(c=>c.id===id)||{name:id}).name;
+const assetName = v => v.fleetNo || v.reg || "Unnamed asset";
+const plural = (n,w,p) => `${n} ${n===1?w:(p||w+"s")}`;
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,4200); }
 function csvCell(v){ let s=String(v??""); if(/^\s*[=+@\-]/.test(s)) s="'"+s; return '"'+s.replace(/"/g,'""')+'"'; }
 function parseCSV(text){
   text = text.replace(/^﻿/,"");
@@ -480,23 +543,31 @@ function parseCSV(text){
   if(f!==""||row.length){ row.push(f); rows.push(row); }
   return rows.filter(r=>r.some(x=>String(x).trim()!==""));
 }
+function download(name, blob){
+  const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+const slug = s => String(s||"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60) || "all";
 
 /* ───────── state ───────── */
+const EMPTY_F = {q:"", unit:"", cat:"", group:"", site:"", op:"", status:"", archived:false};
 const state = {
   today: todayISO(),
   view: "overview",
-  vehicles: [],             // live records
+  vehicles: [],
   loaded: false,
   dbState: "connecting",    // signin | connecting | live | offline
   activity: [],
+  hist: {},                 // full history per asset, loaded when its drawer opens
   session: null,            // {token, email, name, role}
   users: [], usersLoaded: false,
   syncedAt: null,
   demo: false,
   canWrite: false,
-  f: {q:"", group:"", site:"", status:"", archived:false},
+  f: {...EMPTY_F},
+  r: {unit:"", cat:"", group:"", site:"", op:"", status:"", retired:false},
   sort: {key:"status", dir:1},
-  names: {},
+  limit: 150,
 };
 
 /* ───────── backend (Google Apps Script) ───────── */
@@ -555,73 +626,86 @@ function applyUser(u){
   if(state.view==="team" && u.role!=="admin") state.view="overview";
 }
 const isAdmin = () => !!state.session && state.session.role==="admin" && !state.demo;
+const canEdit = () => state.canWrite && !state.demo && state.dbState==="live";
 function startSession(r, remember){
   state.session={token:r.token}; store.set(state.session, remember); applyUser(r.user); store.set(state.session, remember);
   state.dbState="connecting"; state.view="overview"; render(); refresh(false);
   toast(`Signed in as ${r.user.name||r.user.email}${r.user.role==="viewer"?" (view only)":""}`);
 }
 function signOut(expired){
-  state.session=null; state.vehicles=[]; state.activity=[]; state.users=[]; state.usersLoaded=false; state.loaded=false; state.dbState="signin"; store.set(null);
+  state.session=null; state.vehicles=[]; state.activity=[]; state.hist={}; state.users=[]; state.usersLoaded=false; state.loaded=false; state.dbState="signin"; store.set(null);
   closeAll(); render(); if(expired) toast("Your sign-in has ended. Please sign in again.");
 }
 
 function data(){ return state.demo ? sampleFleet() : state.vehicles; }
 function active(){ return data().filter(v=>!v.archived); }
+function service(){ return data().filter(inService); }
 
 /* ───────── sample fleet (preview only, never written) ───────── */
 let _sample=null, _sampleDay=null, _sampleAct=[];
 function activityList(){ if(state.demo){ sampleFleet(); return _sampleAct; } return state.activity; }
 function sampleFleet(){
   if(_sample && _sampleDay===state.today) return _sample;
-  const t=state.today, d=n=>addDays(t,n);
-  const rows=[
-    ["GT 4821-22","LV-014","LV","Abore Pit","Active","Toyota Hilux 2.4",140,d(-340),210],
-    ["GT 7310-23","LV-021","LV","Esaase Pit","Active","Toyota Land Cruiser 79",12,d(-353),64],
-    ["GN 2204-21","LV-009","LV","Other","Active","Nissan Navara",-6,d(-371),95],
-    ["GT 5512-24","DT-103","DT","Abore Pit","Active","Sinotruk Howo 371",45,d(-320),27],
-    ["GT 5513-24","DT-104","DT","Abore Pit","Under maintenance","Sinotruk Howo 371",null,null,120],
-    ["GW 8811-23","DT-110","DT","Esaase Pit","Active","Shacman X3000",88,d(-277),3],
-    ["GT 1180-22","ADT-07","ADT","Esaase Pit","Active","Volvo A40G",200,d(-165),-2],
-    ["GT 1181-22","ADT-08","ADT","Abore Pit","Active","CAT 745",20,d(-345),160],
-    ["GR 3345-20","ST-02","ST","Other","Active","Isuzu FVR fuel bowser",62,d(-303),250],
-    ["GT 9022-21","ST-05","ST","Esaase Pit","Grounded","Hino 500 service truck",-40,d(-405),-12],
-    ["GT 6604-19","LB-01","LB","Other","Active","MAN TGX lowbed",175,d(-190),41],
+  const t=state.today, d=n=>n===null?"":addDays(t,n);
+  const rows=[ // fleetNo, reg, type, unit, site, op, model, rw days, ins days
+    ["LV901","GT 4821-22","LV","Rabotec Mining","Asanko","Active","Toyota Hilux",140,210],
+    ["LV902","GT 7310-23","LV","Rabotec Mining","Asanko","Active","Toyota Land Cruiser 79",12,64],
+    ["LV903","GN 2204-21","LV","Rabotec Project","Edikan","Active","Nissan Navara",-6,95],
+    ["BS901","GT 5512-24","BS","Rabotec Mining","Asanko","Active","Toyota Coaster",45,27],
+    ["TT901","GT 5513-24","TT","Rabotec Project","Asanko","Down","Sinotruk Howo 371",null,120],
+    ["TT902","GW 8811-23","TT","Rabotec Project","Asanko","Active","Shacman X3000",88,9],
+    ["WT901","GT 1180-22","WT","Rabotec Project","Perseus","Active","MAN TGS water tanker",200,-2],
+    ["FT901","GT 1181-22","FT","Rabotec Mining","Asanko","Active","MAN fuel bowser",20,160],
+    ["ST901","GR 3345-20","ST","Rabotec Mining","Asanko","Parked","Isuzu FVR service truck",62,250],
+    ["LB901","GT 6604-19","LB","Rabotec Project","Accra","Active","MAN TGX low bed",175,41],
+    ["DT901","","DT","Rabotec Mining","Asanko","Active","CAT 777F",null,null],
+    ["AT901","","AT","Rabotec Mining","Asanko","Active","CAT 740B",null,null],
+    ["EX901","","EX","Rabotec Mining","Asanko","Active","Komatsu PC2000-8",null,null],
+    ["DR901","","DR","Rabotec Mining","Asanko","Active","Sandvik DP1500i",null,null],
   ];
-  _sample = rows.map((r,i)=>({id:"sample-"+i, reg:r[0], fleetNo:r[1], group:r[2], site:r[3], op:r[4], model:r[5],
-    responsible:["Fleet supervisor","Workshop foreman","Transport officer"][i%3],
-    rwExp:r[6]===null?"":d(r[6]), rwIssue:r[7]||"", rwNo:r[6]===null?"":"RW-"+(48210+i*37),
-    insExp:d(r[8]), insurer:["Enterprise Insurance","SIC Insurance","Star Assurance"][i%3], policyNo:"POL/"+(2026)+"/"+(3300+i*11),
+  _sample = rows.map((r,i)=>({id:"sample-"+i, fleetNo:r[0], reg:r[1], group:r[2], unit:r[3], site:r[4], op:r[5], model:r[6],
+    responsible:["Fleet supervisor","Workshop foreman","Transport officer"][i%3], serialNo:"SN"+(83400+i*7), engineModel:"", engineNo:"", inRegister:"Yes",
+    rwExp:d(r[7]), rwIssue:r[7]===null?"":d(r[7]-365), rwNo:r[7]===null?"":"RW-"+(48210+i*37),
+    insExp:d(r[8]), insIssue:r[8]===null?"":d(r[8]-365), insurer:r[8]===null?"":["Enterprise Insurance","SIC Insurance","Star Assurance"][i%3], policyNo:r[8]===null?"":"POL/2026/"+(3300+i*11),
     notes:"", archived:false, rev:1, updatedBy:"Sample"}));
-  _sampleAct=_sample.map((v,i)=>({at:new Date(Date.now()-(i+1)*36e5*20).toISOString(),vehicleId:v.id,reg:v.reg,by:"Sample fleet officer",action:"Vehicle added",changes:[]}));
+  _sampleAct=_sample.map((v,i)=>({at:new Date(Date.now()-(i+1)*36e5*20).toISOString(),vehicleId:v.id,reg:assetName(v),by:"Sample fleet officer",action:"Asset added",changes:[]}));
   _sampleDay=state.today; return _sample;
 }
 
 /* ───────── derived ───────── */
-function renewalItems(list){
-  return list.filter(v=>!v.archived).flatMap(v=>[["rw","Roadworthy certificate",v.rwExp],["ins","Insurance",v.insExp]].map(([k,label,date])=>({v,k,label,date,left:daysLeft(date),st:docStatus(date)})))
-    .filter(x=>x.st!=="valid").sort((a,b)=>(a.left??-1e6)-(b.left??-1e6));
+function docItems(list){
+  return list.filter(v=>inService(v)&&roadAsset(v)).flatMap(v=>[["rw","Roadworthy certificate",v.rwExp],["ins","Insurance",v.insExp]].map(([k,label,date])=>({v,k,label,date,left:daysLeft(date),st:docStatus(date)})))
+    .sort((a,b)=>(RANK[a.st]-RANK[b.st])||((a.left??-1e6)-(b.left??-1e6)));
 }
+const renewalItems = list => docItems(list).filter(x=>x.st!=="valid");
 function counts(list){
-  const c={total:list.length,valid:0,due:0,expired:0,missing:0};
-  list.forEach(v=>c[vehStatus(v)]++); return c;
+  const c={total:list.length,road:0,valid:0,due:0,red:0,expired:0,missing:0,na:0};
+  list.forEach(v=>{ const s=vehStatus(v); c[s]++; if(s!=="na") c.road++; });
+  c.flags=c.red+c.expired+c.missing; return c;
 }
+function matches(v,f){
+  return (!f.unit||v.unit===f.unit) && (!f.cat||catOf(v.group)===f.cat) && (!f.group||v.group===f.group) && (!f.site||v.site===f.site)
+    && (!f.op||v.op===f.op) && (!f.status||(f.status==="flag"?isFlag(vehStatus(v)):vehStatus(v)===f.status));
+}
+function sitesOf(list){ return [...new Set(list.map(v=>v.site).filter(Boolean))].sort(); }
 function filtered(){
-  const {q,group,site,status,archived}=state.f; const qq=q.trim().toLowerCase();
-  const rank={expired:0,missing:1,due:2,valid:3};
-  let list=data().filter(v=>!!v.archived===archived && (!group||v.group===group) && (!site||v.site===site) && (!status||vehStatus(v)===status)
-    && (!qq || [v.reg,v.fleetNo,v.model,v.site,v.responsible,v.rwNo,v.policyNo,v.insurer].join(" ").toLowerCase().includes(qq)));
+  const f=state.f; const qq=f.q.trim().toLowerCase();
+  let list=data().filter(v=>!!v.archived===f.archived && matches(v,f)
+    && (!qq || [v.reg,v.fleetNo,v.model,v.site,v.unit,typeName(v.group),v.responsible,v.rwNo,v.policyNo,v.insurer,v.serialNo,v.engineNo].join(" ").toLowerCase().includes(qq)));
   const {key,dir}=state.sort;
-  const val=v=> key==="status"? rank[vehStatus(v)]*1e7+(Math.min(daysLeft(v.rwExp)??-1e6,daysLeft(v.insExp)??-1e6)+5e6)
-    : key==="rwExp"||key==="insExp" ? (v[key]||"0000") : String(v[key]||"").toLowerCase();
-  list.sort((a,b)=>{const A=val(a),B=val(b); return (A<B?-1:A>B?1:0)*dir || String(a.reg).localeCompare(b.reg);});
+  const soon=v=>Math.min(daysLeft(v.rwExp)??-1e6,daysLeft(v.insExp)??-1e6);
+  const val=v=> key==="status"? RANK[vehStatus(v)]*1e7+(roadAsset(v)?soon(v)+5e6:0)
+    : key==="rwExp"||key==="insExp" ? (v[key]||"0000") : key==="asset" ? assetName(v).toLowerCase() : String(v[key]||"").toLowerCase();
+  list.sort((a,b)=>{const A=val(a),B=val(b); return (A<B?-1:A>B?1:0)*dir || assetName(a).localeCompare(assetName(b),undefined,{numeric:true});});
   return list;
 }
 
 /* ───────── navigation ───────── */
 const VIEW_LIST = [
   {id:"overview", label:"Overview", icon:I.grid},
-  {id:"register", label:"Vehicle register", icon:I.truck},
-  {id:"renewals", label:"Renewal queue", icon:I.clock},
+  {id:"assets", label:"All assets", icon:I.truck},
+  {id:"alerts", label:"Alerts & renewals", icon:I.bell},
+  {id:"reports", label:"Reports", icon:I.chart},
   {id:"activity", label:"Activity log", icon:I.hist},
   {id:"team", label:"Team", icon:I.users, admin:true},
 ];
@@ -629,17 +713,18 @@ const views = () => VIEW_LIST.filter(v=>!v.admin||isAdmin());
 function initials(n){ return String(n||"?").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("")||"?"; }
 function go(view, filters){
   if(view==="team") state.usersLoaded=false;
-  state.view=view;
-  state.f={q:"",group:"",site:"",status:"",archived:false, ...(filters||{})};
+  state.view=view; state.limit=150;
+  state.f={...EMPTY_F, ...(filters||{})};
   render(); window.scrollTo({top:0});
 }
 function renderNav(){
-  const due=renewalItems(data()).filter(x=>x.st!=="due").length;
-  const html=views().map(v=>`<button data-go="${v.id}" ${state.view===v.id?'aria-current="page"':""}>${v.icon}<span>${v.label}</span>${v.id==="renewals"&&due?`<span class="count">${due}</span>`:""}</button>`).join("");
+  const flags=counts(service()).flags;
+  const badge=v=>v.id==="alerts"&&flags?`<span class="count" title="Assets with a red flag">${flags}</span>`:"";
+  const html=views().map(v=>`<button data-go="${v.id}" ${state.view===v.id?'aria-current="page"':""}>${v.icon}<span>${v.label}</span>${badge(v)}</button>`).join("");
   $("#nav-main").innerHTML=`<div class="nav-label">Workspace</div>${html}`;
   const act=active();
-  $("#nav-groups").innerHTML=`<div class="nav-label">Vehicle groups</div>`+GROUPS.map(g=>`<button data-go="register" data-group="${g.code}" ${state.view==="register"&&state.f.group===g.code?'aria-current="page"':""}><span class="code">${g.code}</span><span>${g.name}</span><span class="qty">${act.filter(v=>v.group===g.code).length}</span></button>`).join("");
-  $("#tabs").innerHTML=views().map(v=>`<button data-go="${v.id}" ${state.view===v.id?'aria-current="page"':""}>${v.label}${v.id==="renewals"&&due?` · ${due}`:""}</button>`).join("");
+  $("#nav-groups").innerHTML=`<div class="nav-label">Fleet categories</div>`+CATS.map(c=>{const n=act.filter(v=>catOf(v.group)===c.id).length; return n?`<button data-go="assets" data-cat="${c.id}" ${state.view==="assets"&&state.f.cat===c.id?'aria-current="page"':""}><span>${c.name}</span><span class="qty">${n}</span></button>`:"";}).join("");
+  $("#tabs").innerHTML=views().map(v=>`<button data-go="${v.id}" ${state.view===v.id?'aria-current="page"':""}>${v.label}${v.id==="alerts"&&flags?` · ${flags}`:""}</button>`).join("");
   const live=state.dbState==="live";
   const ROLE_LABEL={admin:"Admin",editor:"Editor",viewer:"Viewer"};
   $("#rail-foot").innerHTML=`${state.session&&!state.demo?`<div class="who"><span class="brand-mark" style="width:28px;height:28px;font-size:12px;border-radius:50%;background:var(--hi);color:#19232B">${esc(initials(state.session.name||state.session.email))}</span><span style="min-width:0"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(state.session.name||state.session.email)}</span><span style="color:var(--rail-dim)">${ROLE_LABEL[state.session.role]||""}</span></span></div>`:""}
@@ -649,72 +734,95 @@ function renderNav(){
     ${state.session?`<button class="link" data-act="signout" style="color:var(--rail-dim)">Sign out</button>`:""}`;
 }
 
-/* ───────── views ───────── */
+/* ───────── shared bits ───────── */
 function header(eyebrow,title,sub,actions){
   return `<div class="head"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${sub}</p></div><div class="actions">${actions||""}</div></div>`;
 }
-function writeActions(){
-  const canAdd = state.canWrite && !state.demo && state.dbState==="live";
-  return `${!state.demo&&state.session?`<button class="btn" data-act="refresh" aria-label="Refresh from the Google Sheet">${I.hist}Refresh</button>`:""}<button class="btn" data-act="export">${I.down}Export CSV</button>
-    ${canAdd?`<button class="btn" data-act="import">${I.up}Import CSV</button><button class="btn primary" data-act="add">${I.plus}Add vehicle</button>`:""}`;
+function writeActions(extra){
+  return `${!state.demo&&state.session?`<button class="btn" data-act="refresh" aria-label="Refresh from the Google Sheet">${I.hist}Refresh</button>`:""}${extra||""}
+    ${canEdit()?`<button class="btn" data-act="import">${I.up}Import CSV</button><button class="btn primary" data-act="add">${I.plus}Add asset</button>`:""}`;
 }
 function banners(){
   let b="";
-  if(state.demo) b+=`<div class="banner demo"><span class="grow"><b>Sample fleet.</b> These are made-up vehicles to show how the register works. Nothing here is saved.</span><button class="btn sm" data-act="demo-off">Back to live register</button></div>`;
+  if(state.demo) b+=`<div class="banner demo"><span class="grow"><b>Sample fleet.</b> These are made-up assets to show how the register works. Nothing here is saved.</span><button class="btn sm" data-act="demo-off">Back to live register</button></div>`;
   else if(state.dbState==="offline") b+=`<div class="banner warn"><span class="grow"><b>Can't reach the register right now.</b> ${state.vehicles.length?"You're seeing the last records loaded. ":""}Check the network connection and try again.</span><button class="btn sm" data-act="refresh">Try again</button></div>`;
-  else if(state.dbState==="live" && !state.canWrite) b+=`<div class="banner"><span class="grow"><b>View only.</b> You can see every record and export it. Ask an admin to give you Editor access if you need to add or update vehicles.</span></div>`;
+  else if(state.dbState==="live" && !state.canWrite) b+=`<div class="banner"><span class="grow"><b>View only.</b> You can see every record, export it and make reports. Ask an admin for Editor access if you need to add or update assets.</span></div>`;
   return b;
 }
+function flagBanner(){
+  const items=renewalItems(data()).filter(x=>x.st==="red"); if(!items.length) return "";
+  const soonest=items.reduce((a,b)=>a.left<=b.left?a:b);
+  return `<div class="banner flag">${I.flag.replace("<svg",'<svg width="20" height="20"')}<span class="grow"><b>${plural(items.length,"document")} expire${items.length===1?"s":""} within 2 weeks.</b> Soonest: ${esc(assetName(soonest.v))} ${soonest.k==="rw"?"roadworthy":"insurance"} on ${fmtDate(soonest.date)} (${relText(soonest.date)}).</span><button class="btn sm" data-go="alerts">See alerts</button></div>`;
+}
+function chip(st){ return `<span class="chip s-${st}">${st==="red"?I.flag.replace("<svg",'<svg width="12" height="12"'):""}${STATUS_LABEL[st]}</span>`; }
+function opChip(op){ const o=op||"Active"; return `<span class="chip op ${o==="Down"||o==="Retired"?"grounded":o==="Parked"||o==="Out of site"||o==="Not confirmed"?"maint":""}">${esc(o)}</span>`; }
+function stackBar(c){ const t=c.road||1; return `<div class="stack" role="img" aria-label="${c.valid} valid, ${c.due} due in 30 days, ${c.red} within 14 days, ${c.expired} expired, ${c.missing} missing">${[["valid","var(--ok)"],["due","var(--due)"],["red","var(--bad)"],["expired","var(--bad-deep)"],["missing","var(--miss)"]].map(([k,col])=>c[k]?`<span style="width:${c[k]/t*100}%;background:${col}"></span>`:"").join("")}</div>`; }
+function loadingBlock(){ return `<div class="panel"><div class="skel" style="width:35%"></div><div class="skel"></div><div class="skel" style="width:65%"></div></div>`; }
+function emptyFleet(){
+  const can=canEdit();
+  return `<div class="empty">${I.truck.replace("<svg",'<svg width="42" height="42" style="color:var(--ink-3)"')}<h3>Build the asset register</h3>
+    <p>${can?"Add assets one at a time, or import a CSV. Missing dates are flagged automatically so nothing slips through.":state.dbState==="live"?"No assets have been added yet. Records appear here as soon as an editor adds them.":"Once the shared register is available, assets will appear here."}</p>
+    <div class="actions">${can?`<button class="btn primary" data-act="add">${I.plus}Add first asset</button><button class="btn" data-act="import">${I.up}Import CSV</button>`:""}<button class="btn" data-act="demo-on">Preview with a sample fleet</button></div></div>`;
+}
+function footer(){ return `<div class="foot"><span>Dates in Ghana time (GMT)</span><span>Red flag: expires within ${RED} days</span><span>Amber: due in ${RED+1} to ${WINDOW} days</span><span>Statuses reflect recorded dates. Check the original documents during inspections.</span></div>`; }
 
+/* ───────── overview ───────── */
 function viewOverview(){
-  const list=active(), c=counts(list), items=renewalItems(data());
-  const cur=list.filter(v=>{const a=daysLeft(v.rwExp),b=daysLeft(v.insExp);return a!==null&&b!==null&&a>=0&&b>=0;}).length;
-  const pct=list.length?Math.round(cur/list.length*100):0;
-  const stopList=list.filter(v=>["expired","missing"].includes(vehStatus(v))).sort((a,b)=>(a.op==="Active"?0:1)-(b.op==="Active"?0:1));
-  const activeStop=stopList.filter(v=>v.op==="Active").length;
+  const list=service(), c=counts(list), items=renewalItems(data());
   let h=header("Fleet compliance","Fleet overview",
-    list.length?`${list.length} vehicles on the register · ${pct}% have both a current roadworthy certificate and insurance.`:"Roadworthy certificates and insurance for every Rabotec vehicle, in one shared register.",
-    writeActions())+banners();
+    list.length?`${plural(list.length,"asset")} in service · ${c.road} road-registered · ${c.road?Math.round((c.valid+c.due)/c.road*100):0}% of road assets have both documents current.`:"Roadworthy certificates and insurance for every Rabotec asset, in one shared register.",
+    writeActions())+banners()+flagBanner();
   if(!state.loaded && !state.demo) return h+loadingBlock();
   if(!list.length) return h+emptyFleet();
+  const redAssets=list.filter(v=>roadAsset(v)&&(docStatus(v.rwExp)==="red"||docStatus(v.insExp)==="red")).length;
+  const red14=items.filter(x=>x.st==="red").length, due30=items.filter(x=>x.st==="due").length;
   h+=`<section class="kpis" aria-label="Fleet summary">
-    <button class="kpi" data-go="register"><span class="lbl">Vehicles</span><span class="val">${c.total}</span><span class="sub">${GROUPS.length} groups · ${SITES.length-1} pits</span></button>
-    <button class="kpi ok" data-go="register" data-status="valid"><span class="lbl">Clear to dispatch</span><span class="val">${c.valid+c.due}</span><span class="sub">${c.valid} valid · ${c.due} due within ${WINDOW} days</span></button>
-    <button class="kpi due" data-go="renewals"><span class="lbl">Due in ${WINDOW} days</span><span class="val">${items.filter(x=>x.st==="due").length}</span><span class="sub">documents to renew</span></button>
-    <button class="kpi bad" data-go="renewals"><span class="lbl">Not road-legal</span><span class="val">${c.expired+c.missing}</span><span class="sub">${c.expired} expired · ${c.missing} missing a record</span></button>
+    <button class="kpi" data-go="assets"><span class="lbl">Assets in service</span><span class="val">${c.total}</span><span class="sub">${c.road} road-registered · ${c.na} plant &amp; equipment</span></button>
+    <button class="kpi ok" data-go="assets" data-status="valid"><span class="lbl">Road-legal</span><span class="val">${c.valid+c.due}</span><span class="sub">${c.valid} valid · ${c.due} due in ${RED+1}–${WINDOW} days</span></button>
+    <button class="kpi bad" data-go="alerts"><span class="lbl">Red flags</span><span class="val">${c.flags}</span><span class="sub">${redAssets} expiring within 2 weeks · ${c.expired} expired · ${c.missing} missing</span></button>
+    <button class="kpi due" data-go="alerts"><span class="lbl">Documents due</span><span class="val">${red14+due30}</span><span class="sub">${red14} in 2 weeks · ${due30} in ${RED+1}–${WINDOW} days</span></button>
   </section>`;
+  // most urgent first: expiring within 2 weeks, then the most recently expired, then unrecorded
+  const flagList=items.filter(x=>isFlag(x.st)).sort((a,b)=>({red:0,expired:1,missing:2}[a.st]-{red:0,expired:1,missing:2}[b.st])||(a.st==="red"?a.left-b.left:(b.left??0)-(a.left??0)));
   h+=`<section class="grid2">
     <article class="panel chart"><div class="panel-h"><div><h2>Expiry horizon</h2><p>Documents expiring each week for the next 12 weeks, with anything already overdue</p></div>
       <div class="legend"><span><i style="background:var(--accent)"></i>Roadworthy</span><span><i style="background:var(--hi)"></i>Insurance</span></div></div>
       <div class="cw">${horizonChart(list)}</div></article>
-    <article class="panel"><div class="panel-h"><div><h2>Do not dispatch</h2><p>${activeStop?`${activeStop} still marked Active on the pits`:"Vehicles with an expired or unrecorded document"}</p></div>${stopList.length?`<button class="link" data-go="renewals">Renewal queue →</button>`:""}</div>
-      ${stopList.length?`<div class="stoplist">${stopList.slice(0,6).map(v=>{const bad=[["Roadworthy",v.rwExp],["Insurance",v.insExp]].filter(([,d])=>["expired","missing"].includes(docStatus(d))).map(([n,d])=>`${n} ${docStatus(d)==="missing"?"not recorded":relText(d)}`).join(" · ");
-        return `<button class="stop" data-open="${esc(v.id)}"><span class="chip s-${vehStatus(v)}">${STATUS_LABEL[vehStatus(v)]}</span><span><span class="plate">${esc(v.reg)}</span> <span class="fleetno">${esc(v.fleetNo)}</span><br><span class="why">${esc(bad)}</span> ${v.op!=="Active"?opChip(v.op):""}</span></button>`;}).join("")}</div>${stopList.length>6?`<button class="link" data-go="register" data-status="expired">See all ${stopList.length} →</button>`:""}`
-      :`<div class="empty-mini"><b>${I.check.replace("<svg",'<svg width="18" height="18"')} Every vehicle is road-legal</b><span>All active vehicles have a current roadworthy certificate and insurance on record.</span></div>`}
+    <article class="panel"><div class="panel-h"><div><h2>Red flags</h2><p>Expired, missing or expiring within ${RED} days</p></div>${flagList.length?`<button class="link" data-go="alerts">All alerts →</button>`:""}</div>
+      ${flagList.length?`<div class="stoplist">${flagList.slice(0,7).map(x=>`<button class="stop" data-open="${esc(x.v.id)}">${chip(x.st)}<span><span class="plate">${esc(assetName(x.v))}</span> <span class="fleetno">${esc(x.v.fleetNo?x.v.reg:"")}</span><br><span class="why">${x.k==="rw"?"Roadworthy":"Insurance"} ${x.st==="missing"?"not recorded":relText(x.date)} · ${esc(typeName(x.v.group))}</span></span></button>`).join("")}</div>${flagList.length>7?`<button class="link" data-go="alerts">See all ${flagList.length} →</button>`:""}`
+      :`<div class="empty-mini"><b>${I.check.replace("<svg",'<svg width="18" height="18"')} No red flags</b><span>Every road-registered asset has both documents valid for more than ${RED} days.</span></div>`}
     </article></section>`;
-  h+=`<section class="panel"><div class="panel-h"><div><h2>By vehicle group</h2><p>Bar shows the share of each group that is valid, due soon, expired or missing</p></div><button class="link" data-go="register">Open register →</button></div>
-    <div class="groups">${GROUPS.map(g=>{const gl=list.filter(v=>v.group===g.code),gc=counts(gl);return `<button class="group" data-go="register" data-group="${g.code}"><div class="top"><span class="code">${g.code}</span><span class="n">${gl.length}</span></div><h3>${g.name}</h3>${stackBar(gc)}<small>${gl.length?(gc.expired+gc.missing?`${gc.expired+gc.missing} not road-legal`:gc.due?`${gc.due} due soon`:"All documents valid"):"No vehicles yet"}</small></button>`;}).join("")}</div>
-    <div class="sites">${SITES.map(s=>{const sl=list.filter(v=>v.site===s),sc=counts(sl);return `<div class="site"><b>${esc(s)}</b><span class="num">${sl.length} vehicle${sl.length===1?"":"s"} · ${sc.expired+sc.missing} not road-legal · ${sl.filter(v=>v.op!=="Active").length} off the road</span></div>`;}).join("")}</div>
+  h+=`<section class="panel"><div class="panel-h"><div><h2>By fleet category</h2><p>Bar shows road-registered assets that are valid, due, red-flagged, expired or missing</p></div><button class="link" data-go="reports">Reports →</button></div>
+    <div class="groups">${CATS.map(cat=>{const gl=list.filter(v=>catOf(v.group)===cat.id); if(!gl.length) return ""; const gc=counts(gl);
+      return `<button class="group" data-go="assets" data-cat="${cat.id}"><div class="top"><span class="code">${gc.road} road</span><span class="n">${gl.length}</span></div><h3>${cat.name}</h3>${gc.road?stackBar(gc):'<div class="stack"></div>'}<small>${gc.road?(gc.flags?`<span class="t-red">${gc.flags} red flag${gc.flags===1?"":"s"}</span>`:gc.due?`${gc.due} due soon`:"All documents valid"):"Off-road plant: no DVLA documents"}</small></button>`;}).join("")}</div>
+    <div class="sites">${UNITS.map(u=>{const ul=list.filter(v=>v.unit===u),uc=counts(ul); const top=sitesOf(ul).map(s=>[s,ul.filter(v=>v.site===s).length]).sort((a,b)=>b[1]-a[1]).slice(0,3);
+      return `<button class="site" data-go="assets" data-unit="${esc(u)}"><b>${esc(u)}</b><span class="num">${plural(ul.length,"asset")} · ${uc.road} road-registered · <span class="${uc.flags?"t-red":""}">${uc.flags} red flag${uc.flags===1?"":"s"}</span></span><span>${top.map(([s,n])=>`${esc(s)} ${n}`).join(" · ")||"—"}</span></button>`;}).join("")}</div>
   </section>`;
   return h+footer();
 }
-function stackBar(c){ const t=c.total||1; return `<div class="stack" role="img" aria-label="${c.valid} valid, ${c.due} due soon, ${c.expired} expired, ${c.missing} missing">${[["valid","var(--ok)"],["due","var(--due)"],["expired","var(--bad)"],["missing","var(--miss)"]].map(([k,col])=>c[k]?`<span style="width:${c[k]/t*100}%;background:${col}"></span>`:"").join("")}</div>`; }
-function opChip(op){ return `<span class="chip op ${op==="Grounded"?"grounded":op==="Under maintenance"?"maint":""}">${esc(op||"Active")}</span>`; }
-
 function horizonChart(list){
   const buckets=[{label:"Overdue",rw:0,ins:0}];
   for(let w=0;w<12;w++){ const s=addDays(state.today,w*7); const [,m,d]=s.split("-"); buckets.push({label:`${+d} ${MONTHS[+m-1]}`,rw:0,ins:0}); }
-  list.forEach(v=>[["rw",v.rwExp],["ins",v.insExp]].forEach(([k,dt])=>{const l=daysLeft(dt); if(l===null) return; if(l<0) buckets[0][k]++; else if(l<84) buckets[1+Math.floor(l/7)][k]++;}));
-  const max=Math.max(1,...buckets.map(b=>b.rw+b.ins)); const nice=max<=4?4:Math.ceil(max/4)*4;
+  list.filter(roadAsset).forEach(v=>[["rw",v.rwExp],["ins",v.insExp]].forEach(([k,dt])=>{const l=daysLeft(dt); if(l===null) return; if(l<0) buckets[0][k]++; else if(l<84) buckets[1+Math.floor(l/7)][k]++;}));
+  const weekMax=Math.max(1,...buckets.slice(1).map(b=>b.rw+b.ins)), od=buckets[0].rw+buckets[0].ins;
+  const max=od>weekMax*2.5?weekMax*1.6:Math.max(weekMax,od); const nice=max<=4?4:Math.ceil(max/4)*4; const clip=od>nice;
   const W=640,H=230,L=34,R=8,T=12,B=40, cw=(W-L-R)/buckets.length, bw=Math.min(28,cw*.62), y=v=>T+(H-T-B)*(1-v/nice);
   let g="";
   for(let i=0;i<=4;i++){const v=nice/4*i; g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Mono,monospace">${v}</text>`;}
+  // the first two weeks are the red-flag window
+  g+=`<rect x="${L+cw*1+1}" y="${T}" width="${cw*2-2}" height="${H-T-B}" fill="var(--bad-soft)" opacity=".55" rx="4"/><text x="${L+cw*2}" y="${T+12}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--bad)">2 WEEKS</text>`;
   buckets.forEach((b,i)=>{
     const x=L+cw*i+(cw-bw)/2, tot=b.rw+b.ins;
     if(i===0&&tot) g+=`<rect x="${L+cw*i+2}" y="${T}" width="${cw-4}" height="${H-T-B}" fill="var(--bad-soft)" rx="4"/>`;
+    if(i===0&&clip){ // too tall to share a scale with the weekly bars: draw it cut off, with the numbers
+      const rh=(H-T-B)*b.rw/tot;
+      g+=`<rect x="${x}" y="${T+14}" width="${bw}" height="${H-T-B-14}" fill="var(--hi)" rx="2"/><rect x="${x}" y="${y(0)-rh}" width="${bw}" height="${rh}" fill="var(--accent)" rx="2"/><path d="M${x-3} ${T+30}l${bw+6}-6M${x-3} ${T+36}l${bw+6}-6" stroke="var(--surface)" stroke-width="3"/><title>Overdue: ${b.rw} roadworthy, ${b.ins} insurance</title>`;
+      g+=`<text x="${x+bw/2}" y="${T+9}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--bad)" font-family="IBM Plex Mono,monospace">${tot}</text><text x="${L+cw/2}" y="${H-B+18}" text-anchor="middle" font-size="11" fill="var(--bad)" font-weight="600">Overdue</text>`;
+      return;
+    }
     if(b.rw) g+=`<rect x="${x}" y="${y(b.rw)}" width="${bw}" height="${y(0)-y(b.rw)}" fill="var(--accent)" rx="2"><title>${b.label}: ${b.rw} roadworthy</title></rect>`;
     if(b.ins) g+=`<rect x="${x}" y="${y(tot)}" width="${bw}" height="${y(b.rw)-y(tot)}" fill="var(--hi)" rx="2"><title>${b.label}: ${b.ins} insurance</title></rect>`;
-    if(tot) g+=`<text x="${x+bw/2}" y="${y(tot)-5}" text-anchor="middle" font-size="11" font-weight="600" fill="${i===0?"var(--bad)":"var(--ink)"}" font-family="IBM Plex Mono,monospace">${tot}</text>`;
+    if(tot) g+=`<text x="${x+bw/2}" y="${y(tot)-5}" text-anchor="middle" font-size="11" font-weight="600" fill="${i<=2?"var(--bad)":"var(--ink)"}" font-family="IBM Plex Mono,monospace">${tot}</text>`;
     if(i===0||(i>1&&i%2===0)) g+=`<text x="${L+cw*i+cw/2}" y="${H-B+18}" text-anchor="middle" font-size="11" fill="${i===0?"var(--bad)":"var(--ink-3)"}" font-weight="${i===0?600:400}">${i===0?"Overdue":b.label}</text>`;
   });
   g+=`<text x="${L+cw*2}" y="${H-4}" font-size="10.5" fill="var(--ink-3)">Week starting →</text>`;
@@ -722,87 +830,133 @@ function horizonChart(list){
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Documents expiring per week over the next 12 weeks; ${total} in total including ${buckets[0].rw+buckets[0].ins} overdue">${g}</svg>`;
 }
 
-function loadingBlock(){ return `<div class="panel"><div class="skel" style="width:35%"></div><div class="skel"></div><div class="skel" style="width:65%"></div></div>`; }
-function emptyFleet(){
-  const can=state.canWrite&&state.dbState==="live";
-  return `<div class="empty">${I.truck.replace("<svg",'<svg width="42" height="42" style="color:var(--ink-3)"')}<h3>Build the fleet register</h3>
-    <p>${can?"Add vehicles one at a time, or import the CSV exported from the old tracker. Missing dates are flagged automatically so nothing slips through.":state.dbState==="live"?"No vehicles have been added yet. Records appear here as soon as an editor adds them.":"Once the shared register is available, vehicles will appear here."}</p>
-    <div class="actions">${can?`<button class="btn primary" data-act="add">${I.plus}Add first vehicle</button><button class="btn" data-act="import">${I.up}Import CSV</button>`:""}<button class="btn" data-act="demo-on">Preview with a sample fleet</button></div></div>`;
+/* ───────── all assets ───────── */
+function filterSelects(f, prefix){
+  const all=data();
+  const types=TYPES.filter(t=>(!f.cat||t.cat===f.cat) && all.some(v=>v.group===t.code));
+  const sel=(id,label,items,val)=>`<select class="f" id="${prefix}-${id}" aria-label="${label}"><option value="">${label}</option>${items.map(([v,l])=>`<option value="${esc(v)}" ${val===v?"selected":""}>${esc(l)}</option>`).join("")}</select>`;
+  return sel("unit","All business units",UNITS.map(u=>[u,u]),f.unit)
+    + sel("cat","All categories",CATS.filter(c=>all.some(v=>catOf(v.group)===c.id)).map(c=>[c.id,c.name]),f.cat)
+    + sel("group","All fleet types",types.map(t=>[t.code,`${t.code} · ${t.name}`]),f.group)
+    + sel("site","All sites",sitesOf(all).map(s=>[s,s]),f.site)
+    + sel("op","Any operating status",OPS.map(s=>[s,s]),f.op)
+    + sel("status","Any document status",[["flag","Red flags (all)"],...Object.entries(STATUS_LABEL)],f.status);
 }
-function footer(){ return `<div class="foot"><span>Dates in Ghana time (GMT)</span><span>Renewal window ${WINDOW} days</span><span>Statuses reflect recorded dates. Check the original documents during inspections.</span></div>`; }
-
-function viewRegister(){
+function viewAssets(){
   const f=state.f;
-  let h=header("Fleet compliance", f.group?groupName(f.group):"Vehicle register", "Every vehicle with its roadworthy certificate and insurance. Select a row for details and history.", writeActions())+banners();
+  const title=f.group?typeName(f.group):f.cat?catName(f.cat):f.unit?f.unit:"All assets";
+  let h=header("Asset register", esc(title), "Every asset: vehicles, trucks, mining fleet and plant. Select a row for details, history and its own report.",
+    writeActions(`<button class="btn" data-act="export">${I.down}Export CSV</button><button class="btn" data-act="report-assets">${I.ppt}PowerPoint report</button>`))+banners();
   if(!state.loaded&&!state.demo) return h+loadingBlock();
   if(!data().length) return h+emptyFleet();
   h+=`<div class="toolbar">
-    <label class="search">${I.search}<input id="q" type="search" placeholder="Search registration, fleet no., model, person…" value="${esc(f.q)}" aria-label="Search vehicles"></label>
-    <select class="f" id="f-group" aria-label="Vehicle group"><option value="">All groups</option>${GROUPS.map(g=>`<option value="${g.code}" ${f.group===g.code?"selected":""}>${g.code} · ${g.name}</option>`).join("")}</select>
-    <select class="f" id="f-site" aria-label="Site"><option value="">All sites</option>${SITES.map(s=>`<option ${f.site===s?"selected":""}>${s}</option>`).join("")}</select>
-    <select class="f" id="f-status" aria-label="Document status"><option value="">All statuses</option>${Object.entries(STATUS_LABEL).map(([k,l])=>`<option value="${k}" ${f.status===k?"selected":""}>${l}</option>`).join("")}</select>
-    <div class="seg" role="group" aria-label="Register"><button data-arch="0" aria-pressed="${!f.archived}">Active</button><button data-arch="1" aria-pressed="${f.archived}">Archived</button></div>
-  </div><div id="reg-results"></div>`;
+    <label class="search">${I.search}<input id="q" type="search" placeholder="Search fleet no., registration, model, chassis no., person…" value="${esc(f.q)}" aria-label="Search assets"></label>
+    <div class="seg" role="group" aria-label="Register"><button data-arch="0" aria-pressed="${!f.archived}">Current</button><button data-arch="1" aria-pressed="${f.archived}">Archived</button></div>
+  </div><div class="toolbar">${filterSelects(f,"f")}${Object.entries(f).some(([k,v])=>k!=="archived"&&v)?`<button class="btn ghost sm" data-act="clear">Clear filters</button>`:""}</div><div id="reg-results"></div>`;
   return h+footer();
 }
 function registerResults(){
-  const list=filtered(), s=state.sort;
+  const all=filtered(), list=all.slice(0,state.limit), s=state.sort;
   const arrow=k=>s.key===k?(s.dir>0?" ↑":" ↓"):"";
   const th=(k,l)=>`<th aria-sort="${s.key===k?(s.dir>0?"ascending":"descending"):"none"}"><button data-sort="${k}">${l}${arrow(k)}</button></th>`;
-  const docCell=d=>{const st=docStatus(d);return `<div class="docd"><span class="d">${fmtDate(d)}</span><small class="t-${st}">${relText(d)}</small></div>`;};
-  let h=`<div class="summary-line"><span><b>${list.length}</b> ${state.f.archived?"archived":"active"} vehicle${list.length===1?"":"s"}</span><span>Sorted by ${({status:"status",reg:"registration",group:"group",rwExp:"roadworthy expiry",insExp:"insurance expiry",site:"site"})[s.key]}</span></div>`;
-  if(!list.length) return h+`<div class="empty"><h3>No matching vehicles</h3><p>Try a different search or filter, or switch between active and archived.</p><div class="actions"><button class="btn" data-act="clear">Clear filters</button></div></div>`;
-  h+=`<div class="tablewrap"><table><thead><tr>${th("reg","Vehicle")}${th("group","Group / site")}${th("rwExp","Roadworthy")}${th("insExp","Insurance")}${th("status","Status")}<th>Operating</th></tr></thead><tbody>
-    ${list.map(v=>`<tr data-open="${esc(v.id)}" tabindex="0"><td><span class="plate">${esc(v.reg)}</span><div class="fleetno" style="margin-top:4px">${esc(v.fleetNo||"No fleet no.")} · ${esc(v.model||"Model not recorded")}</div></td>
-      <td><b>${esc(v.group)}</b> <span class="muted">· ${esc(v.site||"—")}</span><div class="muted" style="font-size:12.5px">${esc(v.responsible||"No responsible person")}</div></td>
-      <td>${docCell(v.rwExp)}</td><td>${docCell(v.insExp)}</td><td><span class="chip s-${vehStatus(v)}">${STATUS_LABEL[vehStatus(v)]}</span></td><td>${opChip(v.op)}</td></tr>`).join("")}
+  const docCell=(v,k)=>{ if(!roadAsset(v)) return `<span class="muted">—</span>`; const st=docStatus(v[k]); return `<div class="docd"><span class="d">${fmtDate(v[k])}</span><small class="t-${st}">${st==="red"?"⚑ ":""}${relText(v[k])}</small></div>`; };
+  const c=counts(all);
+  let h=`<div class="summary-line"><span><b>${all.length}</b> ${state.f.archived?"archived":""} asset${all.length===1?"":"s"} · ${c.road} road-registered · <span class="${c.flags?"t-red":""}">${c.flags} red flag${c.flags===1?"":"s"}</span></span><span>Sorted by ${({status:"status",asset:"fleet no.",group:"fleet type",rwExp:"roadworthy expiry",insExp:"insurance expiry",site:"site",unit:"business unit"})[s.key]}</span></div>`;
+  if(!all.length) return h+`<div class="empty"><h3>No matching assets</h3><p>Try a different search or filter, or switch between current and archived.</p><div class="actions"><button class="btn" data-act="clear">Clear filters</button></div></div>`;
+  h+=`<div class="tablewrap"><table><thead><tr>${th("asset","Asset")}${th("group","Type / unit")}${th("site","Site / model")}${th("rwExp","Roadworthy")}${th("insExp","Insurance")}${th("status","Status")}<th>Operating</th></tr></thead><tbody>
+    ${list.map(v=>{const st=vehStatus(v); return `<tr data-open="${esc(v.id)}" tabindex="0" class="${isFlag(st)&&inService(v)?"flagrow":""}"><td><span class="plate">${esc(assetName(v))}</span><div class="fleetno" style="margin-top:4px">${v.fleetNo?esc(v.reg||"No registration"):"No fleet no."}</div></td>
+      <td><b>${esc(typeName(v.group))}</b><div class="muted" style="font-size:12.5px">${esc(v.unit||"—")}</div></td>
+      <td>${esc(v.site||"—")}<div class="muted" style="font-size:12.5px">${esc(v.model||"Model not recorded")}</div></td>
+      <td>${docCell(v,"rwExp")}</td><td>${docCell(v,"insExp")}</td><td>${chip(st)}</td><td>${opChip(v.op)}</td></tr>`;}).join("")}
   </tbody></table></div>
-  <div class="cards">${list.map(v=>`<button class="vcard" data-open="${esc(v.id)}"><div class="row"><span><span class="plate">${esc(v.reg)}</span> <span class="fleetno">${esc(v.fleetNo)}</span></span><span class="chip s-${vehStatus(v)}">${STATUS_LABEL[vehStatus(v)]}</span></div>
-    <div class="muted" style="font-size:12.5px">${esc(groupName(v.group))} · ${esc(v.site)} · ${esc(v.op||"Active")}</div>
-    <dl><div><dt>Roadworthy</dt><dd>${docCell(v.rwExp)}</dd></div><div><dt>Insurance</dt><dd>${docCell(v.insExp)}</dd></div></dl></button>`).join("")}</div>`;
+  <div class="cards">${list.map(v=>{const st=vehStatus(v); return `<button class="vcard ${isFlag(st)&&inService(v)?"flagrow":""}" data-open="${esc(v.id)}"><div class="row"><span><span class="plate">${esc(assetName(v))}</span> <span class="fleetno">${esc(v.fleetNo?v.reg:"")}</span></span>${chip(st)}</div>
+    <div class="muted" style="font-size:12.5px">${esc(typeName(v.group))} · ${esc(v.unit)} · ${esc(v.site)} · ${esc(v.op||"Active")}</div>
+    ${roadAsset(v)?`<dl><div><dt>Roadworthy</dt><dd>${docCell(v,"rwExp")}</dd></div><div><dt>Insurance</dt><dd>${docCell(v,"insExp")}</dd></div></dl>`:""}</button>`;}).join("")}</div>
+  ${all.length>list.length?`<div style="text-align:center"><button class="btn" data-act="more">Show ${Math.min(300,all.length-list.length)} more of ${all.length-list.length} remaining</button></div>`:""}`;
   return h;
 }
 
-function viewRenewals(){
+/* ───────── alerts & renewals ───────── */
+function viewAlerts(){
   const items=renewalItems(data());
-  let h=header("Fleet compliance","Renewal queue","Overdue and unrecorded documents first, then everything expiring in the next 30 days. A vehicle can appear twice.",writeActions())+banners();
+  let h=header("Fleet compliance","Alerts & renewals",`Red flags first: anything expired, not recorded, or expiring within ${RED} days. Then documents due in ${RED+1} to ${WINDOW} days. An asset can appear twice.`,writeActions(`<button class="btn" data-act="report-flags">${I.ppt}Red-flag report</button>`))+banners();
   if(!state.loaded&&!state.demo) return h+loadingBlock();
-  if(!active().length) return h+emptyFleet();
-  if(!items.length) return h+`<div class="empty">${I.check.replace("<svg",'<svg width="40" height="40" style="color:var(--ok)"')}<h3>Nothing to renew</h3><p>Every document on the register is valid for more than ${WINDOW} days.</p></div>`+footer();
+  if(!service().length) return h+emptyFleet();
+  if(!items.length) return h+`<div class="empty">${I.check.replace("<svg",'<svg width="40" height="40" style="color:var(--ok)"')}<h3>Nothing to renew</h3><p>Every road document on the register is valid for more than ${WINDOW} days.</p></div>`+footer();
   const lanes=[
-    ["Overdue","expired",x=>x.st==="expired","var(--bad)"],
-    ["Not recorded","missing",x=>x.st==="missing","var(--miss)"],
-    ["Due within 7 days","due",x=>x.st==="due"&&x.left<=7,"var(--due)"],
-    ["Due in 8 to 30 days","due",x=>x.st==="due"&&x.left>7,"var(--due)"],
+    ["Expires within 2 weeks",x=>x.st==="red","var(--bad)",true],
+    ["Expired",x=>x.st==="expired","var(--bad-deep)",true],
+    ["Not recorded",x=>x.st==="missing","var(--miss)",true],
+    [`Due in ${RED+1} to ${WINDOW} days`,x=>x.st==="due","var(--due)",false],
   ];
-  const canEdit=state.canWrite&&!state.demo&&state.dbState==="live";
-  lanes.forEach(([title,st,fn,col])=>{
+  const ce=canEdit();
+  lanes.forEach(([title,fn,col,flag])=>{
     const li=items.filter(fn); if(!li.length) return;
-    h+=`<section class="lane"><div class="lane-h"><h2>${title}</h2><span class="num">${li.length}</span></div>${li.map(x=>`<div class="ritem" style="--c:${col}"><span class="bar"></span>
-      <div><button class="link" style="color:var(--ink)" data-open="${esc(x.v.id)}"><span class="plate">${esc(x.v.reg)}</span></button> <span class="fleetno">${esc(x.v.fleetNo)}</span><div class="who">${esc(groupName(x.v.group))} · ${esc(x.v.site)}${x.v.responsible?` · ${esc(x.v.responsible)}`:""}</div></div>
+    li.sort((a,b)=>(a.left??-1e6)-(b.left??-1e6));
+    h+=`<section class="lane"><div class="lane-h">${flag?`<span class="t-red">${I.flag.replace("<svg",'<svg width="18" height="18"')}</span>`:""}<h2>${title}</h2><span class="num">${li.length}</span></div>${li.map(x=>`<div class="ritem ${flag?"flagged":""}" style="--c:${col}"><span class="bar"></span>
+      <div><button class="link" style="color:var(--ink)" data-open="${esc(x.v.id)}"><span class="plate">${esc(assetName(x.v))}</span></button> <span class="fleetno">${esc(x.v.fleetNo?x.v.reg:"")}</span><div class="who">${esc(typeName(x.v.group))} · ${esc(x.v.unit)} · ${esc(x.v.site)}${x.v.responsible?` · ${esc(x.v.responsible)}`:""}</div></div>
       <div class="doc"><b>${x.label}</b><span class="muted">${x.k==="rw"?(x.v.rwNo?"Cert. "+esc(x.v.rwNo):"No certificate number"):(x.v.insurer?esc(x.v.insurer):"No insurer recorded")}</span></div>
       <div class="when">${x.st==="missing"?"No date":fmtDate(x.date)}<small>${relText(x.date)}</small></div>
-      <div class="btns">${canEdit?`<button class="btn sm primary" data-renew="${esc(x.v.id)}" data-kind="${x.k}">Record renewal</button>`:`<button class="btn sm" data-open="${esc(x.v.id)}">View</button>`}</div></div>`).join("")}</section>`;
+      <div class="btns">${ce?`<button class="btn sm primary" data-renew="${esc(x.v.id)}" data-kind="${x.k}">Record renewal</button>`:`<button class="btn sm" data-open="${esc(x.v.id)}">View</button>`}</div></div>`).join("")}</section>`;
   });
   return h+footer();
 }
 
+/* ───────── reports ───────── */
+function reportList(){
+  const r=state.r;
+  return data().filter(v=>!v.archived && (r.retired||v.op!=="Retired") && matches(v,r));
+}
+function reportTitle(r){
+  const parts=[r.group?typeName(r.group):r.cat?catName(r.cat):"All fleet types", r.unit||"", r.site||"", r.op||"", r.status?(r.status==="flag"?"Red flags":STATUS_LABEL[r.status]):""].filter(Boolean);
+  return parts.join(" · ");
+}
+function viewReports(){
+  const r=state.r, list=reportList(), c=counts(list);
+  let h=header("Reporting","Reports","Filter and segregate the fleet, then generate a PowerPoint report for the selection, for any fleet type, or for a single asset from its details.","")+banners();
+  if(!state.loaded&&!state.demo) return h+loadingBlock();
+  if(!data().length) return h+emptyFleet();
+  h+=`<section class="panel"><div class="panel-h"><div><h2>Select the fleet</h2><p>Every filter narrows the report. Leave a filter on "All" to include everything.</p></div>
+      <label class="remember" style="font-size:13px"><input type="checkbox" id="r-retired" ${r.retired?"checked":""}> Include retired assets</label></div>
+    <div class="toolbar">${filterSelects(r,"r")}${Object.entries(r).some(([k,v])=>k!=="retired"&&v)?`<button class="btn ghost sm" data-act="r-clear">Clear</button>`:""}</div>
+    <div class="rsum">
+      <div class="rsum-t"><div class="eyebrow">Selection</div><h3>${esc(reportTitle(r))}</h3><p class="muted">${plural(list.length,"asset")} · ${c.road} road-registered · ${c.na} off-road plant</p></div>
+      <div class="rsum-k"><span><b class="t-valid">${c.valid}</b>Valid</span><span><b class="t-due">${c.due}</b>Due 15–30 d</span><span><b class="t-red">${c.red}</b>≤ 14 days</span><span><b class="t-expired">${c.expired}</b>Expired</span><span><b class="t-missing">${c.missing}</b>Missing</span></div>
+      <div class="actions"><button class="btn" data-act="r-csv" ${list.length?"":"disabled"}>${I.down}CSV</button><button class="btn primary" data-act="r-ppt" ${list.length?"":"disabled"}>${I.ppt}PowerPoint report</button></div>
+    </div></section>`;
+  const types=TYPES.map(t=>({t,l:list.filter(v=>v.group===t.code)})).filter(x=>x.l.length).sort((a,b)=>CATS.findIndex(c=>c.id===a.t.cat)-CATS.findIndex(c=>c.id===b.t.cat)||b.l.length-a.l.length);
+  h+=`<section class="panel"><div class="panel-h"><div><h2>Reports by fleet type</h2><p>One click makes a PowerPoint for that fleet type within the selection above</p></div></div>
+    <div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Fleet type</th><th>Category</th><th class="n">Assets</th><th class="n">Road</th><th class="n">Valid</th><th class="n">15–30 d</th><th class="n">≤ 14 d</th><th class="n">Expired</th><th class="n">Missing</th><th></th></tr></thead><tbody>
+    ${types.map(({t,l})=>{const k=counts(l); return `<tr style="cursor:default"><td><span class="code-pill">${t.code}</span> <b>${esc(t.name)}</b></td><td class="muted">${esc(catName(t.cat))}</td><td class="n">${k.total}</td><td class="n">${k.road}</td><td class="n t-valid">${k.valid||""}</td><td class="n t-due">${k.due||""}</td><td class="n t-red">${k.red||""}</td><td class="n t-expired">${k.expired||""}</td><td class="n t-missing">${k.missing||""}</td>
+      <td style="text-align:right;white-space:nowrap"><button class="btn sm" data-view-type="${t.code}">View</button> <button class="btn sm primary" data-report-type="${t.code}">${I.ppt}Report</button></td></tr>`;}).join("")||`<tr><td colspan="10" class="muted">No assets match the selection.</td></tr>`}
+    </tbody></table></div></section>`;
+  const units=UNITS.map(u=>({u,l:list.filter(v=>v.unit===u)})).filter(x=>x.l.length);
+  h+=`<section class="panel"><div class="panel-h"><div><h2>By business unit and site</h2><p>Segregation of the selection for site and unit reporting</p></div></div>
+    <div class="tablewrap" style="border:0"><table class="rt"><thead><tr><th>Business unit</th><th>Site</th><th class="n">Assets</th><th class="n">Road</th><th class="n">Red flags</th><th class="n">Due 15–30 d</th><th></th></tr></thead><tbody>
+    ${units.flatMap(({u,l})=>sitesOf(l).map(s=>{const sl=l.filter(v=>v.site===s),k=counts(sl); return `<tr style="cursor:default"><td><b>${esc(u)}</b></td><td>${esc(s)}</td><td class="n">${k.total}</td><td class="n">${k.road}</td><td class="n t-red">${k.flags||""}</td><td class="n t-due">${k.due||""}</td>
+      <td style="text-align:right"><button class="btn sm" data-report-site="${esc(s)}" data-unit="${esc(u)}">${I.ppt}Report</button></td></tr>`;})).join("")}
+    </tbody></table></div></section>`;
+  return h+footer();
+}
+
+/* ───────── activity ───────── */
 function viewActivity(){
-  let h=header("Fleet compliance","Activity log","Every change saved to the register, newest first, with who made it and what changed.","")+banners();
+  let h=header("Fleet compliance","Activity log","Every change saved to the register, newest first, with who made it and what changed. Imported history from the old trackers is kept in each asset's history.","")+banners();
   if(!state.loaded&&!state.demo) return h+loadingBlock();
   const evs=activityList().slice(0,300);
-  if(!evs.length) return h+`<div class="empty"><h3>No changes yet</h3><p>Adding vehicles, recording renewals and archiving are all logged here automatically.</p></div>`;
+  if(!evs.length) return h+`<div class="empty"><h3>No changes yet</h3><p>Adding assets, recording renewals and archiving are all logged here automatically.</p></div>`;
   h+=`<section class="panel"><div class="panel-h"><div><h2>Recent changes</h2><p>Latest ${evs.length} events · times in Ghana (GMT)</p></div></div><div class="feed">${evs.map(evHTML).join("")}</div></section>`;
   return h+footer();
 }
 function evHTML(e){
   const when=new Date(e.at); const ts=Number.isNaN(when.getTime())?"":when.toLocaleString("en-GB",{timeZone:"UTC",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
-  const ch=(e.changes||[]).slice(0,8).map(c=>`<li>${esc(FIELDS[c.f]||c.f)}: <del>${esc(fmtVal(c.f,c.from))}</del> → <ins>${esc(fmtVal(c.f,c.to))}</ins></li>`).join("");
-  return `<article class="ev"><span class="ic">${e.action.includes("renew")?I.check:e.action.includes("added")||e.action.includes("Imported")?I.plus:I.edit}</span><div>
+  const imported=/^Imported/.test(e.action);
+  const ch=(e.changes||[]).slice(0,10).map(c=>imported||c.from===""&&/added|Added/.test(e.action)?`<li>${esc(FIELDS[c.f]||c.f)}: <ins>${esc(fmtVal(c.f,c.to))}</ins></li>`:`<li>${esc(FIELDS[c.f]||c.f)}: <del>${esc(fmtVal(c.f,c.from))}</del> → <ins>${esc(fmtVal(c.f,c.to))}</ins></li>`).join("");
+  return `<article class="ev"><span class="ic">${/renew/i.test(e.action)?I.check:/added|Added|Imported/.test(e.action)?I.plus:I.edit}</span><div>
     <h3>${esc(e.action)} · ${findV(e.vehicleId)?`<button data-open="${esc(e.vehicleId)}">${esc(e.reg)}</button>`:`<span class="plate">${esc(e.reg)}</span>`}</h3>${ch?`<ul>${ch}</ul>`:""}
-    <div class="meta">${esc(e.by||"Someone")} · ${ts} GMT</div></div></article>`;
+    <div class="meta">${esc(e.by||"Someone")} · ${imported?when.toLocaleDateString("en-GB",{timeZone:"UTC",day:"2-digit",month:"short",year:"numeric"}):ts+" GMT"}</div></div></article>`;
 }
-function fmtVal(f,v){ if(f==="archived") return v?"Archived":"Active"; if(DATE_FIELDS.has(f)) return v?fmtDate(v):"not recorded"; return v===""||v==null?"not recorded":String(v); }
+function fmtVal(f,v){ if(f==="archived") return v===true||v==="true"?"Archived":"Current"; if(DATE_FIELDS.has(f)) return v?fmtDate(v):"not recorded"; if(f==="group") return v?`${v} · ${typeName(v)}`:"not recorded"; return v===""||v==null?"not recorded":String(v); }
 
 /* ───────── render ───────── */
 function render(){
@@ -812,8 +966,9 @@ function render(){
   const ae=document.activeElement, keepQ=ae&&ae.id==="q"?[ae.selectionStart,ae.selectionEnd]:null;
   const c=$("#canvas");
   if(state.view==="team"&&!isAdmin()) state.view="overview";
-  c.innerHTML = state.view==="overview"?viewOverview():state.view==="register"?viewRegister():state.view==="renewals"?viewRenewals():state.view==="team"?viewTeam():viewActivity();
-  if(state.view==="register"&&$("#reg-results")) $("#reg-results").innerHTML=registerResults();
+  const V={overview:viewOverview,assets:viewAssets,alerts:viewAlerts,reports:viewReports,activity:viewActivity,team:viewTeam};
+  c.innerHTML=(V[state.view]||viewOverview)();
+  if(state.view==="assets"&&$("#reg-results")) $("#reg-results").innerHTML=registerResults();
   if(keepQ&&$("#q")){ const q=$("#q"); q.focus(); try{ q.setSelectionRange(keepQ[0],keepQ[1]); }catch{} }
   const d=$("#dlg-detail"); if(d.open&&d.dataset.id) openDetail(d.dataset.id,true);
 }
@@ -850,8 +1005,8 @@ function renderSignin(force){
     <button type="button" class="link" data-si="code" style="align-self:center">Send a new code</button>`;
   c.innerHTML=`<div class="signin"><form id="signin-form" novalidate>
     <div class="brand"><span class="brand-logo" style="box-shadow:0 0 0 1px var(--line)"><img src="https://rabotecgroup.com/images/header/160x40-px-logo.jpg" alt="Rabotec" width="104" height="26" onerror="this.parentNode.classList.add('fallback')"></span><div><small style="margin-top:0;color:var(--ink-3)">DVLA &amp; Insurance Register</small></div></div>
-    <div><h1>${mode==="login"?"Staff sign in":mode==="code"?"Get a sign-in code":"Create your password"}</h1><p style="margin-top:6px">DVLA roadworthy certificates and vehicle insurance for the Abore and Esaase fleet.</p></div>
-    ${API_READY?"":`<div class="formerr">This copy isn't connected to its Google Sheet yet. Paste the Apps Script web app URL into API_URL in index.html. You can still preview it with sample vehicles.</div>`}
+    <div><h1>${mode==="login"?"Staff sign in":mode==="code"?"Get a sign-in code":"Create your password"}</h1><p style="margin-top:6px">DVLA roadworthy certificates, insurance and the full asset register for Rabotec Mining and Rabotec Project.</p></div>
+    ${API_READY?"":`<div class="formerr">This copy isn't connected to its Google Sheet yet. Paste the Apps Script web app URL into API_URL in index.html. You can still preview it with a sample fleet.</div>`}
     ${tabs}${body}
     <button type="button" class="btn" data-act="demo-on" style="justify-content:center">Preview with a sample fleet</button>
   </form></div>`;
@@ -893,7 +1048,7 @@ async function loadUsers(){
 }
 function viewTeam(){
   if(!state.usersLoaded){ loadUsers(); }
-  const ROLE_HELP={admin:"Manages the team and edits records",editor:"Adds and updates vehicles",viewer:"Looks and exports only"};
+  const ROLE_HELP={admin:"Manages the team and edits records",editor:"Adds and updates assets",viewer:"Looks, exports and makes reports"};
   let h=header("Access","Team","Everyone who can sign in, and what they can do. Add a person by email; they get an invitation and create their own password.",`<button class="btn" data-act="users-refresh">${I.hist}Refresh</button>`);
   h+=`<section class="panel"><div class="panel-h"><div><h2>Add a person</h2><p>They can sign in once they've set a password from the emailed code.</p></div></div>
     <form class="team-add" id="team-add" novalidate>
@@ -937,95 +1092,128 @@ document.addEventListener("submit",e=>{
 });
 
 /* ───────── detail drawer ───────── */
+const ST_COL={valid:["var(--ok)","var(--ok-soft)"],due:["var(--due)","var(--due-soft)"],red:["#fff","var(--bad)"],expired:["#fff","var(--bad-deep)"],missing:["var(--miss)","var(--miss-soft)"],na:["var(--ink-3)","var(--surface-2)"]};
 function sticker(date,label){
-  const st=docStatus(date); const c={valid:"var(--ok)",due:"var(--due)",expired:"var(--bad)",missing:"var(--miss)"}[st], cs={valid:"var(--ok-soft)",due:"var(--due-soft)",expired:"var(--bad-soft)",missing:"var(--miss-soft)"}[st];
+  const st=docStatus(date); const [c,cs]=ST_COL[st];
   let inner="<b>—</b><small>NONE</small>"; if(date){const [y,m]=date.split("-"); inner=`<b>${MONTHS[+m-1].toUpperCase()}</b><small>${y}</small>`;}
-  return `<span class="sticker" style="--c:${c};--cs:${cs}" aria-label="${label} expiry ${fmtDate(date)}">${inner}</span>`;
+  return `<span class="sticker" style="--c:${c};--cs:${cs};${st==="red"||st==="expired"?"border-color:"+cs:""}" aria-label="${label} expiry ${fmtDate(date)}">${inner}</span>`;
 }
 function findV(id){ return data().find(v=>v.id===id); }
+async function loadHistory(id){
+  if(state.demo||state.hist[id]) return;
+  state.hist[id]="loading";
+  try{ const r=await api("history",{id}); state.hist[id]=r.activity||[]; }
+  catch(e){ state.hist[id]=null; }
+  const d=$("#dlg-detail"); if(d.open&&d.dataset.id===id) openDetail(id,true);
+}
+function historyOf(v){
+  if(state.demo) return activityList().filter(e=>e.vehicleId===v.id);
+  const h=state.hist[v.id];
+  if(Array.isArray(h)){ const recent=state.activity.filter(e=>e.vehicleId===v.id&&!h.some(x=>x.at===e.at&&x.action===e.action)); return [...recent,...h]; }
+  return state.activity.filter(e=>e.vehicleId===v.id);
+}
 function openDetail(id, refresh){
   const v=findV(id); const dlg=$("#dlg-detail");
   if(!v){ if(dlg.open) dlg.close(); return; }
-  const st=vehStatus(v), canEdit=state.canWrite&&!state.demo&&state.dbState==="live";
-  const hist=activityList().filter(e=>e.vehicleId===v.id);
+  if(!refresh||dlg.dataset.id!==id) loadHistory(id);
+  const st=vehStatus(v), ce=canEdit(), road=roadAsset(v);
+  const hist=historyOf(v), loadingH=state.hist[v.id]==="loading";
   dlg.dataset.id=id;
-  dlg.innerHTML=`<div class="dlg"><div class="dlg-h"><div><div class="eyebrow">${esc(groupName(v.group))} · ${esc(v.site)}</div><h2 style="margin-top:6px">${esc(v.reg)}</h2><p>${esc(v.fleetNo||"No fleet number")} · ${esc(v.model||"Model not recorded")}</p></div><button class="x" data-close aria-label="Close">${I.x}</button></div>
+  const flags=road?[["Roadworthy",v.rwExp],["Insurance",v.insExp]].map(([n,d])=>[n,d,docStatus(d)]).filter(x=>isFlag(x[2])):[];
+  dlg.innerHTML=`<div class="dlg"><div class="dlg-h"><div><div class="eyebrow">${esc(typeName(v.group))} · ${esc(v.unit||"")} · ${esc(v.site||"")}</div><h2 style="margin-top:6px">${esc(assetName(v))}</h2><p>${v.fleetNo?esc(v.reg||"No registration"):"No fleet number"} · ${esc(v.model||"Model not recorded")}</p></div><button class="x" data-close aria-label="Close">${I.x}</button></div>
   <div class="dlg-b">
-    <div class="dtop"><span class="chip s-${st}">${STATUS_LABEL[st]}</span>${opChip(v.op)}${v.archived?'<span class="chip op">Archived</span>':""}</div>
-    ${["expired","missing"].includes(st)&&!v.archived?`<div class="nodispatch">${I.stop}<span>Do not dispatch. ${[["Roadworthy",v.rwExp],["Insurance",v.insExp]].filter(([,d])=>["expired","missing"].includes(docStatus(d))).map(([n,d])=>`${n} ${docStatus(d)==="missing"?"not recorded":"expired "+fmtDate(d)}`).join("; ")}.</span></div>`:""}
-    <div class="discs">
-      <div class="disc">${sticker(v.rwExp,"Roadworthy")}<div class="info"><b>Roadworthy</b><span>${fmtDate(v.rwExp)} · <span class="t-${docStatus(v.rwExp)}">${relText(v.rwExp)}</span></span><span>${v.rwNo?"Cert. "+esc(v.rwNo):"No certificate number"}${v.rwIssue?" · issued "+fmtDate(v.rwIssue):""}</span>${canEdit?`<button class="link" data-renew="${esc(v.id)}" data-kind="rw">Record renewal</button>`:""}</div></div>
-      <div class="disc">${sticker(v.insExp,"Insurance")}<div class="info"><b>Insurance</b><span>${fmtDate(v.insExp)} · <span class="t-${docStatus(v.insExp)}">${relText(v.insExp)}</span></span><span>${esc(v.insurer||"No insurer")}${v.policyNo?" · "+esc(v.policyNo):""}</span>${canEdit?`<button class="link" data-renew="${esc(v.id)}" data-kind="ins">Record renewal</button>`:""}</div></div>
-    </div>
-    <dl class="kv"><div><dt>Responsible person</dt><dd>${esc(v.responsible||"Not recorded")}</dd></div><div><dt>Operating status</dt><dd>${esc(v.op||"Active")}</dd></div>
-      <div><dt>Site</dt><dd>${esc(v.site)}</dd></div><div><dt>Group</dt><dd>${esc(v.group)} · ${esc(groupName(v.group))}</dd></div>
+    <div class="dtop">${chip(st)}${opChip(v.op)}${v.archived?'<span class="chip op">Archived</span>':""}</div>
+    ${flags.length&&inService(v)?`<div class="nodispatch ${flags.every(f=>f[2]==="red")?"soon":""}">${(flags.every(f=>f[2]==="red")?I.flag:I.stop).replace("<svg",'<svg width="20" height="20"')}<span>${flags.every(f=>f[2]==="red")?"Red flag: renew now.":"Do not dispatch on public roads."} ${flags.map(([n,d,s])=>`${n} ${s==="missing"?"not recorded":s==="expired"?"expired "+fmtDate(d):"expires "+fmtDate(d)+" ("+relText(d)+")"}`).join("; ")}.</span></div>`:""}
+    ${road?`<div class="discs">
+      <div class="disc">${sticker(v.rwExp,"Roadworthy")}<div class="info"><b>Roadworthy</b><span>${fmtDate(v.rwExp)} · <span class="t-${docStatus(v.rwExp)}">${relText(v.rwExp)}</span></span><span>${v.rwNo?"Cert. "+esc(v.rwNo):"No certificate number"}${v.rwIssue?" · issued "+fmtDate(v.rwIssue):""}</span>${ce?`<button class="link" data-renew="${esc(v.id)}" data-kind="rw">Record renewal</button>`:""}</div></div>
+      <div class="disc">${sticker(v.insExp,"Insurance")}<div class="info"><b>Insurance</b><span>${fmtDate(v.insExp)} · <span class="t-${docStatus(v.insExp)}">${relText(v.insExp)}</span></span><span>${esc(v.insurer||"No insurer")}${v.policyNo?" · "+esc(v.policyNo):""}${v.insIssue?" · from "+fmtDate(v.insIssue):""}</span>${ce?`<button class="link" data-renew="${esc(v.id)}" data-kind="ins">Record renewal</button>`:""}</div></div>
+    </div>`:`<div class="banner"><span class="grow"><b>Off-road asset.</b> No registration or document dates are recorded, so no roadworthy certificate or insurance is tracked. Add a registration if this asset goes on public roads.</span></div>`}
+    <dl class="kv">
+      <div><dt>Fleet no.</dt><dd>${esc(v.fleetNo||"Not recorded")}</dd></div><div><dt>Registration</dt><dd>${esc(v.reg||"Not registered")}</dd></div>
+      <div><dt>Fleet type</dt><dd>${esc(v.group)} · ${esc(typeName(v.group))}</dd></div><div><dt>Category</dt><dd>${esc(catName(catOf(v.group)))}</dd></div>
+      <div><dt>Business unit</dt><dd>${esc(v.unit||"—")}</dd></div><div><dt>Site</dt><dd>${esc(v.site||"—")}</dd></div>
+      <div><dt>Make / model</dt><dd>${esc(v.model||"Not recorded")}</dd></div><div><dt>Chassis / serial no.</dt><dd>${esc(v.serialNo||"Not recorded")}</dd></div>
+      <div><dt>Engine</dt><dd>${esc([v.engineModel,v.engineNo].filter(Boolean).join(" · ")||"Not recorded")}</dd></div><div><dt>Responsible person</dt><dd>${esc(v.responsible||"Not recorded")}</dd></div>
+      <div><dt>Operating status</dt><dd>${esc(v.op||"Active")}</dd></div><div><dt>In asset register</dt><dd>${esc(v.inRegister||"—")}</dd></div>
       ${v.notes?`<div style="grid-column:1/-1"><dt>Notes</dt><dd style="white-space:pre-wrap">${esc(v.notes)}</dd></div>`:""}</dl>
-    <div><div class="panel-h" style="margin-bottom:6px"><h2 style="font:600 17px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase">History</h2></div>
-      <div class="feed">${hist.length?hist.slice(0,30).map(evHTML).join(""):'<p class="muted">No saved history.</p>'}</div></div>
+    <div><div class="panel-h" style="margin-bottom:6px"><h2 style="font:600 17px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase">History</h2>${loadingH?'<span class="muted" style="font-size:12.5px">Loading full history…</span>':""}</div>
+      <div class="feed">${hist.length?hist.slice(0,40).map(evHTML).join(""):loadingH?'<div class="skel"></div>':'<p class="muted">No saved history.</p>'}</div></div>
   </div>
-  ${canEdit?`<div class="dlg-f"><button class="btn" data-archive="${esc(v.id)}">${v.archived?"Restore to register":"Archive vehicle"}</button><button class="btn primary" data-edit="${esc(v.id)}">${I.edit}Edit details</button></div>`:""}</div>`;
+  <div class="dlg-f"><button class="btn" data-report-asset="${esc(v.id)}" style="margin-right:auto">${I.ppt}Asset report</button>${ce?`<button class="btn" data-archive="${esc(v.id)}">${v.archived?"Restore":"Archive"}</button><button class="btn primary" data-edit="${esc(v.id)}">${I.edit}Edit details</button>`:""}</div></div>`;
   if(!refresh && !dlg.open) dlg.showModal();
 }
 
 /* ───────── add / edit ───────── */
-const BLANK={reg:"",fleetNo:"",group:"LV",site:"Abore Pit",op:"Active",model:"",responsible:"",rwNo:"",rwIssue:"",rwExp:"",insurer:"",policyNo:"",insExp:"",notes:"",archived:false};
+const BLANK={fleetNo:"",reg:"",group:"LV",unit:"Rabotec Mining",site:"Asanko",op:"Active",model:"",serialNo:"",engineModel:"",engineNo:"",responsible:"",inRegister:"",
+  rwNo:"",rwIssue:"",rwExp:"",insurer:"",policyNo:"",insIssue:"",insExp:"",notes:"",archived:false};
+const PREFIX={RB:"EX",G:"GR",FL:"WL",R:"RC",WP:"DP",AC:"GS",EC:"GS",TG:"GS",WD:"GS",WM:"GS",MIC:"MC",MJC:"MC",MSP:"MC",ADT:"AT"};
+function typeFromFleet(no){ const m=/^([A-Z]+)/.exec(normFleet(no)); if(!m) return ""; const p=m[1]; return TYPE[p]?p:PREFIX[p]||""; }
 function fld(k,label,type,opts){
   const o=opts||{}; const id="e-"+k;
-  if(type==="select") return `<div class="fld ${o.full?"full":""}"><label for="${id}">${label}</label><select id="${id}" name="${k}">${o.items.map(([val,l])=>`<option value="${esc(val)}">${esc(l)}</option>`).join("")}</select></div>`;
+  if(type==="select") return `<div class="fld ${o.full?"full":""}"><label for="${id}">${label}</label><select id="${id}" name="${k}">${o.html||o.items.map(([val,l])=>`<option value="${esc(val)}">${esc(l)}</option>`).join("")}</select><span class="err" id="err-${k}" hidden></span></div>`;
   if(type==="textarea") return `<div class="fld full"><label for="${id}">${label}</label><textarea id="${id}" name="${k}" rows="2" maxlength="2000" placeholder="${esc(o.ph||"")}"></textarea></div>`;
-  return `<div class="fld ${o.full?"full":""}"><label for="${id}">${label}</label><input id="${id}" name="${k}" type="${type}" ${o.req?"required":""} maxlength="${type==="date"?10:120}" ${type==="date"?'max="2099-12-31" min="1990-01-01"':""} placeholder="${esc(o.ph||"")}" autocomplete="off"><span class="err" id="err-${k}" hidden></span>${o.hint?`<small>${o.hint}</small>`:""}</div>`;
+  return `<div class="fld ${o.full?"full":""}"><label for="${id}">${label}</label><input id="${id}" name="${k}" type="${type}" ${o.list?`list="${o.list}"`:""} maxlength="${type==="date"?10:120}" ${type==="date"?'max="2099-12-31" min="1990-01-01"':""} placeholder="${esc(o.ph||"")}" autocomplete="off"><span class="err" id="err-${k}" hidden></span>${o.hint?`<small>${o.hint}</small>`:""}</div>`;
 }
+const typeOptions = () => CATS.map(c=>`<optgroup label="${esc(c.name)}">${TYPES.filter(t=>t.cat===c.id).map(t=>`<option value="${t.code}">${t.code} · ${esc(t.name)}</option>`).join("")}</optgroup>`).join("");
 function openEdit(id){
   const v=id?findV(id):null; const draft={...BLANK,...(v||{})};
   const dlg=$("#dlg-edit");
-  dlg.innerHTML=`<form class="dlg" id="edit-form" novalidate><div class="dlg-h"><div><h2>${v?"Edit "+esc(v.reg):"Add a vehicle"}</h2><p>${v?"Changes are logged with your name.":"Registration and group are required. Add document dates now or later; blanks are flagged as missing."}</p></div><button type="button" class="x" data-close aria-label="Close">${I.x}</button></div>
+  dlg.innerHTML=`<form class="dlg" id="edit-form" novalidate><div class="dlg-h"><div><h2>${v?"Edit "+esc(assetName(v)):"Add an asset"}</h2><p>${v?"Changes are logged with your name.":"Enter a fleet no. or a registration, and the fleet type. Road-registered assets need document dates; blanks are flagged as missing."}</p></div><button type="button" class="x" data-close aria-label="Close">${I.x}</button></div>
   <div class="dlg-b"><div class="form">
-    ${fld("reg","Registration *","text",{req:true,ph:"e.g. GT 4821-22"})}
-    ${fld("fleetNo","Fleet / asset no.","text",{ph:"e.g. DT-103"})}
-    ${fld("group","Vehicle group *","select",{items:GROUPS.map(g=>[g.code,`${g.code} · ${g.name}`])})}
-    ${fld("site","Site *","select",{items:SITES.map(s=>[s,s])})}
-    ${fld("model","Make / model","text",{ph:"e.g. Sinotruk Howo 371"})}
+    ${fld("fleetNo","Fleet no.","text",{ph:"e.g. TT012"})}
+    ${fld("reg","Registration","text",{ph:"e.g. GT 4821-22",hint:"Leave blank for off-road plant."})}
+    ${fld("group","Fleet type *","select",{html:typeOptions()})}
+    ${fld("unit","Business unit *","select",{items:UNITS.map(s=>[s,s])})}
+    ${fld("site","Site","text",{list:"site-list",ph:"e.g. Asanko"})}
     ${fld("op","Operating status","select",{items:OPS.map(s=>[s,s])})}
-    ${fld("responsible","Responsible person","text",{full:true,ph:"Driver, operator or supervisor"})}
+    ${fld("model","Make / model","text",{ph:"e.g. Sinotruk Howo 371"})}
+    ${fld("serialNo","Chassis / serial no.","text")}
+    ${fld("engineModel","Engine model","text")}
+    ${fld("engineNo","Engine no.","text")}
+    ${fld("responsible","Responsible person","text",{ph:"Driver, operator or supervisor"})}
+    ${fld("inRegister","In the asset register","select",{items:[["","Not checked"],["Yes","Yes"],["No","No"]]})}
     <div class="sect">Roadworthy certificate</div>
     ${fld("rwNo","Certificate number","text")}
+    <div></div>
     ${fld("rwIssue","Issue date","date")}
     ${fld("rwExp","Expiry date","date")}
-    <div></div>
     <div class="sect">Insurance</div>
     ${fld("insurer","Insurer","text",{ph:"e.g. SIC Insurance"})}
     ${fld("policyNo","Policy number","text")}
+    ${fld("insIssue","Start date","date")}
     ${fld("insExp","Expiry date","date")}
-    <div></div>
     ${fld("notes","Notes","textarea",{ph:"Renewal arrangements, DVLA booking, document location…"})}
-  </div><div class="formerr" id="form-err" hidden role="alert"></div></div>
-  <div class="dlg-f"><span class="grow">${v?`Revision ${v.rev||1}`:""}</span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary" id="save-btn">${I.check}Save vehicle</button></div></form>`;
+  </div><datalist id="site-list">${sitesOf(data()).map(s=>`<option value="${esc(s)}">`).join("")}</datalist><div class="formerr" id="form-err" hidden role="alert"></div></div>
+  <div class="dlg-f"><span class="grow">${v?`Revision ${v.rev||1}`:""}</span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary" id="save-btn">${I.check}Save asset</button></div></form>`;
   const form=$("#edit-form");
   Object.keys(BLANK).forEach(k=>{ if(form.elements[k]) form.elements[k].value=draft[k]??""; });
+  if(!v) form.elements.fleetNo.addEventListener("input",()=>{ const t=typeFromFleet(form.elements.fleetNo.value); if(t) form.elements.group.value=t; });
   form.addEventListener("submit",async e=>{
     e.preventDefault();
     const next={}; Object.keys(BLANK).forEach(k=>{ if(form.elements[k]) next[k]=String(form.elements[k].value||"").trim(); });
-    next.reg=normReg(next.reg); next.archived=v?!!v.archived:false;
+    next.reg=normReg(next.reg); next.fleetNo=normFleet(next.fleetNo); next.archived=v?!!v.archived:false;
     const errs=validate(next, v&&v.id);
     form.querySelectorAll(".err").forEach(s=>{s.hidden=true;s.textContent="";});
     const fe=$("#form-err"); fe.hidden=true;
     if(Object.keys(errs).length){ Object.entries(errs).forEach(([k,m])=>{const s=$("#err-"+k); if(s){s.textContent=m;s.hidden=false;} }); const first=form.elements[Object.keys(errs)[0]]; if(first) first.focus(); return; }
     const btn=$("#save-btn"); btn.disabled=true; btn.textContent="Saving…";
     try{
-      await saveVehicle(next, v, v?"Vehicle updated":"Vehicle added");
-      dlg.close(); toast(v?`${next.reg} updated`:`${next.reg} added to the register`);
+      await saveVehicle(next, v, v?"Asset updated":"Asset added");
+      dlg.close(); toast(v?`${assetName(next)} updated`:`${assetName(next)} added to the register`);
       if(v) openDetail(v.id);
-    }catch(err){ fe.textContent=err.message; fe.hidden=false; btn.disabled=false; btn.innerHTML=I.check+"Save vehicle"; }
+    }catch(err){ fe.textContent=err.message; fe.hidden=false; btn.disabled=false; btn.innerHTML=I.check+"Save asset"; }
   });
-  dlg.showModal(); setTimeout(()=>form.elements.reg.focus(),30);
+  dlg.showModal(); setTimeout(()=>form.elements.fleetNo.focus(),30);
 }
 function validate(n, selfId){
   const e={};
-  if(!n.reg) e.reg="Enter the registration number.";
-  else if(state.vehicles.some(x=>x.id!==selfId && regKey(x.reg)===regKey(n.reg))) e.reg="This registration is already on the register (check archived vehicles too).";
-  if(!GROUPS.some(g=>g.code===n.group)) e.group="Choose a vehicle group.";
-  ["rwIssue","rwExp","insExp"].forEach(k=>{ if(n[k] && !validISO(n[k])) e[k]="Enter a valid date."; });
+  if(!n.reg&&!n.fleetNo) e.fleetNo="Enter a fleet no., a registration, or both.";
+  if(n.reg&&state.vehicles.some(x=>x.id!==selfId && x.reg && regKey(x.reg)===regKey(n.reg))) e.reg="This registration is already on the register (check archived assets too).";
+  if(n.fleetNo&&state.vehicles.some(x=>x.id!==selfId && x.fleetNo && regKey(x.fleetNo)===regKey(n.fleetNo))) e.fleetNo="This fleet no. is already on the register (check archived assets too).";
+  if(!TYPE[n.group]) e.group="Choose a fleet type.";
+  ["rwIssue","rwExp","insIssue","insExp"].forEach(k=>{ if(n[k] && !validISO(n[k])) e[k]="Enter a valid date."; });
   if(!e.rwIssue&&!e.rwExp&&n.rwIssue&&n.rwExp&&n.rwIssue>n.rwExp) e.rwIssue="Issue date must be on or before the expiry date.";
+  if(!e.insIssue&&!e.insExp&&n.insIssue&&n.insExp&&n.insIssue>n.insExp) e.insIssue="Start date must be on or before the expiry date.";
   if(n.rwIssue && !e.rwIssue && n.rwIssue>state.today) e.rwIssue="Issue date can't be in the future.";
   return e;
 }
@@ -1037,7 +1225,7 @@ async function saveVehicle(next, prev, action){
   let r;
   try{ r=await api("save",{vehicle:payload({...next,id:prev?prev.id:""}), rev:prev?prev.rev:0, label:action}); }
   catch(e){ if(e.code==="conflict"||e.code==="gone"||e.code==="duplicate") refresh(true); throw e; }
-  if(r.vehicle){ const i=state.vehicles.findIndex(x=>x.id===r.vehicle.id); if(i>=0) state.vehicles[i]=r.vehicle; else state.vehicles.push(r.vehicle); }
+  if(r.vehicle){ const i=state.vehicles.findIndex(x=>x.id===r.vehicle.id); if(i>=0) state.vehicles[i]=r.vehicle; else state.vehicles.push(r.vehicle); delete state.hist[r.vehicle.id]; }
   render();
   refresh(true);
   return r;
@@ -1049,107 +1237,107 @@ function openRenew(id, kind){
   const isRw=kind==="rw", cur=isRw?v.rwExp:v.insExp;
   const suggested = cur && daysLeft(cur)>=-60 ? addDays(cur,365) : addDays(state.today,365);
   const dlg=$("#dlg-renew");
-  dlg.innerHTML=`<form class="dlg" id="renew-form" novalidate><div class="dlg-h"><div><div class="eyebrow">${esc(v.reg)} · ${esc(v.fleetNo)}</div><h2 style="margin-top:6px">Record ${isRw?"roadworthy":"insurance"} renewal</h2><p>Current expiry: ${fmtDate(cur)} (${relText(cur)}).</p></div><button type="button" class="x" data-close aria-label="Close">${I.x}</button></div>
+  dlg.innerHTML=`<form class="dlg" id="renew-form" novalidate><div class="dlg-h"><div><div class="eyebrow">${esc(assetName(v))} · ${esc(v.reg)}</div><h2 style="margin-top:6px">Record ${isRw?"roadworthy":"insurance"} renewal</h2><p>Current expiry: ${fmtDate(cur)} (${relText(cur)}).</p></div><button type="button" class="x" data-close aria-label="Close">${I.x}</button></div>
   <div class="dlg-b"><div class="form">
-    ${isRw?`${fld("rwNo","New certificate number","text")}${fld("rwIssue","Issue date","date")}${fld("rwExp","New expiry date *","date",{req:true,hint:"Suggested: one year on. Check the sticker."})}`
-          :`${fld("insurer","Insurer","text")}${fld("policyNo","Policy number","text")}${fld("insExp","New expiry date *","date",{req:true,hint:"Suggested: one year on. Check the policy schedule."})}`}
+    ${isRw?`${fld("rwNo","New certificate number","text")}${fld("rwIssue","Issue date","date")}${fld("rwExp","New expiry date *","date",{hint:"Suggested: one year on. Check the sticker."})}`
+          :`${fld("insurer","Insurer","text")}${fld("policyNo","Policy number","text")}${fld("insIssue","Start date","date")}${fld("insExp","New expiry date *","date",{hint:"Suggested: one year on. Check the policy schedule."})}`}
   </div><div class="formerr" id="renew-err" hidden role="alert"></div></div>
   <div class="dlg-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary" id="renew-btn">${I.check}Save renewal</button></div></form>`;
   const form=$("#renew-form");
   if(isRw){ form.elements.rwNo.value=""; form.elements.rwIssue.value=state.today; form.elements.rwExp.value=suggested; }
-  else { form.elements.insurer.value=v.insurer||""; form.elements.policyNo.value=v.policyNo||""; form.elements.insExp.value=suggested; }
+  else { form.elements.insurer.value=v.insurer||""; form.elements.policyNo.value=v.policyNo||""; form.elements.insIssue.value=cur&&cur>=state.today?addDays(cur,1):state.today; form.elements.insExp.value=suggested; }
   form.addEventListener("submit",async e=>{
     e.preventDefault();
-    const next={...v}; ["rwNo","rwIssue","rwExp","insurer","policyNo","insExp"].forEach(k=>{ if(form.elements[k]) next[k]=form.elements[k].value.trim(); });
+    const next={...v}; ["rwNo","rwIssue","rwExp","insurer","policyNo","insIssue","insExp"].forEach(k=>{ if(form.elements[k]) next[k]=form.elements[k].value.trim(); });
     const errBox=$("#renew-err"); const ek=isRw?"rwExp":"insExp";
     const errs=validate(next,v.id); if(!next[ek]) errs[ek]="Enter the new expiry date."; else if(next[ek]<=(cur||"")) errs[ek]="The new expiry must be later than the current one.";
     form.querySelectorAll(".err").forEach(s=>s.hidden=true);
     const bad=Object.entries(errs).filter(([k])=>form.elements[k]);
     if(bad.length){ bad.forEach(([k,m])=>{const s=$("#err-"+k); s.textContent=m; s.hidden=false;}); return; }
     const btn=$("#renew-btn"); btn.disabled=true; btn.textContent="Saving…";
-    try{ await saveVehicle(next, v, isRw?"Roadworthy renewed":"Insurance renewed"); dlg.close(); toast(`${v.reg}: ${isRw?"roadworthy":"insurance"} now valid to ${fmtDate(next[ek])}`); }
+    try{ await saveVehicle(next, v, isRw?"Roadworthy renewed":"Insurance renewed"); dlg.close(); toast(`${assetName(v)}: ${isRw?"roadworthy":"insurance"} now valid to ${fmtDate(next[ek])}`); }
     catch(err){ errBox.textContent=err.message; errBox.hidden=false; btn.disabled=false; btn.innerHTML=I.check+"Save renewal"; }
   });
   dlg.showModal();
 }
-
 async function toggleArchive(id){
   const v=findV(id); if(!v) return;
-  const next={...v, archived:!v.archived}; 
-  try{ await saveVehicle(next, v, v.archived?"Vehicle restored":"Vehicle archived"); toast(v.archived?`${v.reg} restored to the register`:`${v.reg} archived. Its history is kept.`); }
+  try{ await saveVehicle({...v, archived:!v.archived}, v, v.archived?"Asset restored":"Asset archived"); toast(v.archived?`${assetName(v)} restored to the register`:`${assetName(v)} archived. Its history is kept.`); }
   catch(err){ toast(err.message); }
 }
 
 /* ───────── CSV export / import ───────── */
-const CSV_COLS=[["reg","Registration"],["fleetNo","Fleet no."],["group","Group"],["site","Site"],["op","Operating status"],["model","Make / model"],["responsible","Responsible person"],["rwNo","Roadworthy certificate no."],["rwIssue","Roadworthy issue date"],["rwExp","Roadworthy expiry"],["insurer","Insurer"],["policyNo","Policy number"],["insExp","Insurance expiry"],["notes","Notes"]];
-async function exportCSV(template){
-  const list = template ? [] : (state.view==="register"?filtered():data());
-  const head=[...CSV_COLS.map(c=>c[1]), ...(template?[]:["Status","Archived"])];
-  const rows=[head, ...list.map(v=>[...CSV_COLS.map(([k])=>v[k]??""), STATUS_LABEL[vehStatus(v)], v.archived?"Yes":"No"])];
-  if(template) rows.push(["GT 0000-24","LV-001","LV","Abore Pit","Active","Toyota Hilux","Name","RW-12345","2026-01-15","2027-01-14","SIC Insurance","POL/2026/001","2027-03-31",""]);
-  const csv="﻿"+rows.map(r=>r.map(csvCell).join(",")).join("\r\n");
-  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-  const a=document.createElement("a"); a.href=url; a.download=template?"rabotec-dvla-insurance-import-template.csv":`rabotec-dvla-insurance-register-${state.demo?"sample-":""}${state.today}.csv`;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000);
-  if(!template) toast(`${list.length} vehicle${list.length===1?"":"s"} exported`);
+const CSV_COLS=[["fleetNo","Fleet no."],["reg","Registration"],["group","Fleet type code"],["unit","Business unit"],["site","Site"],["op","Operating status"],["model","Make / model"],
+  ["serialNo","Chassis / serial no."],["engineModel","Engine model"],["engineNo","Engine no."],["responsible","Responsible person"],["inRegister","In asset register"],
+  ["rwNo","Roadworthy certificate no."],["rwIssue","Roadworthy issue date"],["rwExp","Roadworthy expiry"],["insurer","Insurer"],["policyNo","Policy number"],["insIssue","Insurance start date"],["insExp","Insurance expiry"],["notes","Notes"]];
+function exportCSV(list, name, template){
+  const head=[...CSV_COLS.map(c=>c[1]), ...(template?[]:["Fleet type","Category","Status","Roadworthy days left","Insurance days left","Archived"])];
+  const rows=[head, ...list.map(v=>[...CSV_COLS.map(([k])=>v[k]??""), typeName(v.group), catName(catOf(v.group)), STATUS_LABEL[vehStatus(v)], roadAsset(v)?daysLeft(v.rwExp)??"":"", roadAsset(v)?daysLeft(v.insExp)??"":"", v.archived?"Yes":"No"])];
+  if(template) rows.push(["LV001","GT 0000-24","LV","Rabotec Mining","Asanko","Active","Toyota Hilux","","","","Name","Yes","RW-12345","2026-01-15","2027-01-14","SIC Insurance","POL/2026/001","2026-04-01","2027-03-31",""]);
+  download(name, new Blob(["﻿"+rows.map(r=>r.map(csvCell).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"}));
+  if(!template) toast(`${plural(list.length,"asset")} exported`);
 }
-function mapGroup(s){
-  const t=String(s||"").toLowerCase();
-  if(!t) return null;
-  if(/\bad[ts]?\b|articulat/.test(t)) return "ADT";
-  if(/\blv|light/.test(t)) return "LV";
-  if(/\bdt|dump/.test(t)) return "DT";
-  if(/\bst\b|service|bowser|fuel|water/.test(t)) return "ST";
-  if(/\blb|lowbed|low bed|low-bed/.test(t)) return "LB";
-  return GROUPS.some(g=>g.code.toLowerCase()===t)?t.toUpperCase():null;
+function mapType(s, fleetNo){
+  const t=String(s||"").trim(); const up=t.toUpperCase();
+  if(TYPE[up]) return up; if(PREFIX[up]) return PREFIX[up];
+  const byName=TYPES.find(x=>x.name.toLowerCase()===t.toLowerCase()); if(byName) return byName.code;
+  const lo=t.toLowerCase();
+  const words=[[/light|pick ?up|hilux|land ?cruiser/,"LV"],[/\bvan\b|hiace|sprinter|starex/,"FV"],[/\bbus/,"BS"],[/tipper/,"TT"],[/water/,"WT"],[/fuel|bowser/,"FT"],[/service/,"ST"],[/low ?bed/,"LB"],[/flat ?bed/,"FB"],[/articulat|\badt\b/,"AT"],[/dump|haul/,"DT"],[/excavat/,"EX"],[/dozer/,"DZ"],[/grader/,"GR"],[/loader/,"WL"],[/drill/,"DR"],[/pump/,"DP"],[/generat|compressor|welder/,"GS"],[/light(ing)? tower/,"LT"],[/crush|screen/,"MC"],[/crane/,"CN"],[/roller|compact/,"RC"]];
+  for(const [re,c] of words) if(lo&&re.test(lo)) return c;
+  return typeFromFleet(fleetNo)||null;
 }
-function mapSite(s){ const t=String(s||"").toLowerCase(); return t.includes("abore")?"Abore Pit":t.includes("esaase")||t.includes("esase")?"Esaase Pit":"Other"; }
-function mapOp(s){ const t=String(s||"").toLowerCase(); return t.includes("ground")?"Grounded":t.includes("maint")||t.includes("repair")||t.includes("workshop")?"Under maintenance":"Active"; }
+function mapUnit(s){ const t=String(s||"").toLowerCase(); return t.includes("project")?"Rabotec Project":t.includes("mining")?"Rabotec Mining":""; }
+function mapOp(s){ const t=String(s||"").toLowerCase(); if(!t) return ""; if(/retir|sold|scrap|convert/.test(t)) return "Retired"; if(/down|break|repair|workshop|maint|ground/.test(t)) return "Down"; if(/park|idle|standby/.test(t)) return "Parked"; if(/out of site|off site|offsite|transfer/.test(t)) return "Out of site"; if(/\?|confirm|unknown/.test(t)) return "Not confirmed"; return "Active"; }
 const HEAD_ALIASES={
-  reg:["registration","reg","plate","plate number","reg no","registration number","vehicle"],
-  fleetNo:["fleet no.","fleet no","asset id","asset","fleet number","asset no","fleet id"],
-  group:["group","category","vehicle group","type"],
-  site:["site","location","pit"],
-  op:["operating status","op status","vehicle status","operational status"],
-  model:["make / model","make/model","model","make"],
-  responsible:["responsible person","responsible","driver","operator"],
+  fleetNo:["fleet no.","fleet no","asset id","asset","fleet number","asset no","fleet id","equip id","equipment id","fleet"],
+  reg:["registration","reg","plate","plate number","reg no","registration number","reg. no.","vehicle no"],
+  group:["fleet type code","fleet type","type","group","category","vehicle group","equipment type"],
+  unit:["business unit","unit","company","division"],
+  site:["site","location","pit","project"],
+  op:["operating status","op status","vehicle status","operational status","status"],
+  model:["make / model","make/model","model","make","description"],
+  serialNo:["chassis / serial no.","chassis no","chassis number","serial no","serial number","s/n","vin"],
+  engineModel:["engine model"], engineNo:["engine no.","engine no","engine number","engine s/n"],
+  responsible:["responsible person","responsible","driver","operator"], inRegister:["in asset register"],
   rwNo:["roadworthy certificate no.","certificate number","roadworthy cert no","roadworthy number","cert no","roadworthy cert. no."],
-  rwIssue:["roadworthy issue date","roadworthy issued","issue date"],
-  rwExp:["roadworthy expiry","roadworthy expiry date","roadworthy","rw expiry"],
+  rwIssue:["roadworthy issue date","roadworthy issued","rw issue date"],
+  rwExp:["roadworthy expiry","roadworthy expiry date","roadworthy","rw expiry","roadworthy expiring date"],
   insurer:["insurer","insurance provider","insurance company"],
   policyNo:["policy number","policy no","policy"],
-  insExp:["insurance expiry","insurance expiry date","insurance","ins expiry"],
+  insIssue:["insurance start date","insurance issued","insurance issue date","ins issue date"],
+  insExp:["insurance expiry","insurance expiry date","insurance","ins expiry","insurance expiring date"],
   notes:["notes","remarks","comment","comments"],
-  archived:["archived"],
 };
 function analyseImport(text){
-  const rows=parseCSV(text); if(rows.length<2) return {error:"The file has no data rows. Use the template, or the CSV exported from the old tracker."};
+  const rows=parseCSV(text); if(rows.length<2) return {error:"The file has no data rows. Use the template, or a spreadsheet saved as CSV."};
   const head=rows[0].map(h=>h.trim().toLowerCase());
   const col={}; Object.entries(HEAD_ALIASES).forEach(([k,al])=>{ const i=head.findIndex(h=>al.includes(h)); if(i>=0) col[k]=i; });
-  if(col.reg===undefined) return {error:"No registration column found. The first row must be column headings, including \"Registration\"."};
-  const existing=new Map(state.vehicles.map(v=>[regKey(v.reg),v]));
+  if(col.reg===undefined&&col.fleetNo===undefined) return {error:"No fleet no. or registration column found. The first row must be column headings, such as \"Fleet no.\" and \"Registration\"."};
+  const byFleet=new Map(state.vehicles.filter(v=>v.fleetNo).map(v=>[regKey(v.fleetNo),v])), byReg=new Map(state.vehicles.filter(v=>v.reg).map(v=>[regKey(v.reg),v]));
   const seen=new Set(); const out=[];
   rows.slice(1).forEach((r,i)=>{
     const get=k=>col[k]===undefined?"":String(r[col[k]]??"").trim();
-    const rec={reg:normReg(get("reg")),fleetNo:get("fleetNo"),group:mapGroup(get("group")),site:mapSite(get("site")),op:mapOp(get("op")),model:get("model"),responsible:get("responsible"),
-      rwNo:get("rwNo"),insurer:get("insurer"),policyNo:get("policyNo"),notes:get("notes").slice(0,2000),archived:/^(yes|true|1|archived)$/i.test(get("archived"))};
+    const rec={fleetNo:normFleet(get("fleetNo")),reg:normReg(get("reg")),unit:mapUnit(get("unit")),site:get("site"),op:mapOp(get("op")),model:get("model"),serialNo:get("serialNo"),
+      engineModel:get("engineModel"),engineNo:get("engineNo"),responsible:get("responsible"),inRegister:/^y/i.test(get("inRegister"))?"Yes":/^n/i.test(get("inRegister"))?"No":"",
+      rwNo:get("rwNo"),insurer:get("insurer"),policyNo:get("policyNo"),notes:get("notes").slice(0,2000)};
+    rec.group=mapType(get("group"),rec.fleetNo);
     const problems=[];
-    if(!rec.reg) problems.push("no registration");
-    if(!rec.group) problems.push(get("group")?`unknown group "${get("group")}"`:"no group");
-    ["rwIssue","rwExp","insExp"].forEach(k=>{ const p=parseAnyDate(get(k)); if(p===null) problems.push(`${FIELDS[k].toLowerCase()} "${get(k)}" not a date`); rec[k]=p||""; });
-    const key=regKey(rec.reg);
-    if(rec.reg && seen.has(key)) problems.push("duplicate in file");
+    if(!rec.reg&&!rec.fleetNo) problems.push("no fleet no. or registration");
+    ["rwIssue","rwExp","insIssue","insExp"].forEach(k=>{ const p=parseAnyDate(get(k)); if(p===null) problems.push(`${FIELDS[k].toLowerCase()} "${get(k)}" not a date`); rec[k]=p||""; });
+    const key=(rec.fleetNo?"f"+regKey(rec.fleetNo):"")+"|"+(rec.reg?"r"+regKey(rec.reg):"");
+    if(seen.has(key)) problems.push("duplicate in file");
     seen.add(key);
-    const match=existing.get(key);
+    const match=(rec.fleetNo&&byFleet.get(regKey(rec.fleetNo)))||(rec.reg&&byReg.get(regKey(rec.reg)))||null;
+    if(!match&&!rec.group) problems.push(get("group")?`unknown fleet type "${get("group")}"`:"no fleet type");
     out.push({line:i+2, rec, match, problems, kind: problems.length?"skip":match?"update":"new"});
   });
   return {rows:out};
 }
 function openImport(){
   const dlg=$("#dlg-import");
-  const paint=(body,foot)=>{ dlg.innerHTML=`<div class="dlg"><div class="dlg-h"><div><h2>Import vehicles</h2><p>Bring in records from the old tracker's CSV export or from a spreadsheet saved as CSV.</p></div><button class="x" data-close aria-label="Close">${I.x}</button></div><div class="dlg-b">${body}</div><div class="dlg-f">${foot}</div></div>`; };
+  const paint=(body,foot)=>{ dlg.innerHTML=`<div class="dlg"><div class="dlg-h"><div><h2>Import assets</h2><p>Bring in records from a spreadsheet saved as CSV.</p></div><button class="x" data-close aria-label="Close">${I.x}</button></div><div class="dlg-b">${body}</div><div class="dlg-f">${foot}</div></div>`; };
   paint(`<label class="drop" id="drop" for="imp-file"><b>Choose a CSV file</b><span class="muted">or drop it here. Dates can be 2027-01-14, 14/01/2027 or 14 Jan 2027.</span><input id="imp-file" type="file" accept=".csv,text/csv" hidden></label>
-    <p class="muted" style="margin:0;font-size:13px">Vehicles are matched on registration. Matches are updated with any non-blank values in the file; new registrations are added. Nothing is deleted.</p>`,
+    <p class="muted" style="margin:0;font-size:13px">Assets are matched on fleet no., then registration. Matches are updated with any non-blank values in the file; new assets are added. Nothing is deleted. The fleet type is read from a type column or from the fleet no. prefix (TT012 → Tipper truck).</p>`,
     `<button class="btn" data-act="template" style="margin-right:auto">${I.down}Download template</button><button class="btn" data-close>Cancel</button>`);
   const input=$("#imp-file"), drop=$("#drop");
   const handle=file=>{ if(!file) return; const rd=new FileReader(); rd.onload=()=>preview(String(rd.result)); rd.onerror=()=>toast("That file couldn't be read."); rd.readAsText(file); };
@@ -1162,10 +1350,10 @@ function openImport(){
     if(a.error){ paint(`<div class="formerr">${esc(a.error)}</div>`,`<button class="btn" data-act="import">Choose another file</button><button class="btn" data-close>Close</button>`); return; }
     const n=a.rows.filter(r=>r.kind==="new"), u=a.rows.filter(r=>r.kind==="update"), s=a.rows.filter(r=>r.kind==="skip");
     paint(`<div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="kpi ok" style="cursor:default"><span class="lbl">New</span><span class="val">${n.length}</span></div><div class="kpi due" style="cursor:default"><span class="lbl">Update</span><span class="val">${u.length}</span></div><div class="kpi bad" style="cursor:default"><span class="lbl">Skipped</span><span class="val">${s.length}</span></div></div>
-      <div class="tablewrap"><table class="mini"><thead><tr><th>Row</th><th>Registration</th><th>Group</th><th>Roadworthy</th><th>Insurance</th><th>Result</th></tr></thead><tbody>
-      ${a.rows.slice(0,200).map(r=>`<tr style="cursor:default"><td class="num">${r.line}</td><td><b>${esc(r.rec.reg||"—")}</b></td><td>${esc(r.rec.group||"—")}</td><td class="num">${r.rec.rwExp||"—"}</td><td class="num">${r.rec.insExp||"—"}</td><td>${r.kind==="skip"?`<span class="t-expired">Skipped: ${esc(r.problems.join(", "))}</span>`:r.kind==="update"?'<span class="t-due">Update existing</span>':'<span class="t-valid">Add new</span>'}</td></tr>`).join("")}
+      <div class="tablewrap"><table class="mini"><thead><tr><th>Row</th><th>Asset</th><th>Type</th><th>Roadworthy</th><th>Insurance</th><th>Result</th></tr></thead><tbody>
+      ${a.rows.slice(0,200).map(r=>`<tr style="cursor:default"><td class="num">${r.line}</td><td><b>${esc(r.rec.fleetNo||r.rec.reg||"—")}</b> <span class="muted">${esc(r.rec.fleetNo?r.rec.reg:"")}</span></td><td>${esc(r.rec.group||"—")}</td><td class="num">${r.rec.rwExp||"—"}</td><td class="num">${r.rec.insExp||"—"}</td><td>${r.kind==="skip"?`<span class="t-expired">Skipped: ${esc(r.problems.join(", "))}</span>`:r.kind==="update"?'<span class="t-due">Update existing</span>':'<span class="t-valid">Add new</span>'}</td></tr>`).join("")}
       </tbody></table></div><div id="imp-prog" hidden><div class="progress"><span style="width:0%"></span></div><p class="muted" id="imp-msg" style="margin:6px 0 0"></p></div>`,
-      `<span class="grow">${s.length?"Fix skipped rows in the file and import again to add them.":""}</span><button class="btn" data-close>Cancel</button><button class="btn primary" id="imp-go" ${n.length+u.length?"":"disabled"}>Import ${n.length+u.length} vehicle${n.length+u.length===1?"":"s"}</button>`);
+      `<span class="grow">${s.length?"Fix skipped rows in the file and import again to add them.":""}</span><button class="btn" data-close>Cancel</button><button class="btn primary" id="imp-go" ${n.length+u.length?"":"disabled"}>Import ${plural(n.length+u.length,"asset")}</button>`);
     $("#imp-go").addEventListener("click",()=>runImport([...n,...u]));
   }
   async function runImport(list){
@@ -1173,10 +1361,10 @@ function openImport(){
     const items=list.map(({rec,match})=>{
       if(match){
         const cur=state.vehicles.find(v=>v.id===match.id)||match; const next={...cur};
-        Object.entries(rec).forEach(([k,val])=>{ if(k==="archived") return; if(k==="op"||k==="site"){ if(val&&val!=="Other"&&val!=="Active") next[k]=val; return; } if(val!=="") next[k]=val; });
+        Object.entries(rec).forEach(([k,val])=>{ if(val!==""&&val!=null) next[k]=val; });
         return {vehicle:payload(next), rev:cur.rev, label:"Updated by import"};
       }
-      return {vehicle:payload({...BLANK,...rec,id:""}), rev:0, label:"Imported"};
+      return {vehicle:payload({...BLANK,...Object.fromEntries(Object.entries(rec).filter(([,x])=>x!==""&&x!=null)),id:""}), rev:0, label:"Imported"};
     });
     let ok=0, fail=0; const fails=[];
     for(let i=0;i<items.length;i+=25){
@@ -1197,25 +1385,258 @@ function openImport(){
 /* ───────── help ───────── */
 function openHelp(){
   const dlg=$("#dlg-help");
-  dlg.innerHTML=`<div class="dlg"><div class="dlg-h"><div><h2>How statuses work</h2><p>Each vehicle takes the worst status of its two documents.</p></div><button class="x" data-close aria-label="Close">${I.x}</button></div><div class="dlg-b" style="gap:12px">
-    <p style="margin:0"><span class="chip s-expired">Expired</span> A roadworthy certificate or insurance date has passed. The vehicle must not be dispatched until renewed.</p>
-    <p style="margin:0"><span class="chip s-missing">Missing</span> A document date hasn't been entered. Treat as not road-legal until the document is checked and recorded.</p>
-    <p style="margin:0"><span class="chip s-due">Due soon</span> A document expires today or within the next ${WINDOW} days. Book the DVLA test or insurance renewal now.</p>
-    <p style="margin:0"><span class="chip s-valid">Valid</span> Both documents run for more than ${WINDOW} more days.</p>
-    <p style="margin:0" class="muted">Dates use Ghana time (GMT). Every save records the signed-in person and what changed, in the vehicle's history and the activity log. If two people edit the same vehicle at once, the second save is stopped so nothing is overwritten. Archive vehicles that leave the fleet; their history is kept.</p>
+  dlg.innerHTML=`<div class="dlg"><div class="dlg-h"><div><h2>How statuses work</h2><p>Each road-registered asset takes the worst status of its two documents.</p></div><button class="x" data-close aria-label="Close">${I.x}</button></div><div class="dlg-b" style="gap:12px">
+    <p style="margin:0">${chip("red")} A roadworthy certificate or insurance expires within the next ${RED} days (2 weeks). Renew now. Red flags also go out in the daily email.</p>
+    <p style="margin:0">${chip("expired")} A date has passed. The asset must not go on public roads until renewed.</p>
+    <p style="margin:0">${chip("missing")} A road-registered asset has no date for one of its documents. Treat it as not road-legal until the document is checked and recorded.</p>
+    <p style="margin:0">${chip("due")} A document expires in ${RED+1} to ${WINDOW} days. Book the DVLA test or insurance renewal.</p>
+    <p style="margin:0">${chip("valid")} Both documents run for more than ${WINDOW} more days.</p>
+    <p style="margin:0">${chip("na")} Off-road plant and mining equipment with no registration: no DVLA documents are tracked.</p>
+    <p style="margin:0" class="muted">Retired and archived assets are left out of alerts. Dates use Ghana time (GMT). Every save records the signed-in person and what changed. The history imported from the old trackers (July–August 2026) is kept in each asset's history.</p>
   </div></div>`;
   dlg.showModal();
+}
+
+/* ───────── PowerPoint reports (PptxGenJS, made in the browser: nothing leaves the device) ───────── */
+let _pptxLib=null;
+function loadPptx(){
+  if(window.PptxGenJS) return Promise.resolve(window.PptxGenJS);
+  return _pptxLib||(_pptxLib=new Promise((res,rej)=>{
+    const s=document.createElement("script"); s.src=PPTX_URL; s.integrity=PPTX_SRI; s.crossOrigin="anonymous";
+    s.onload=()=>window.PptxGenJS?res(window.PptxGenJS):rej(new Error("The PowerPoint maker didn't load."));
+    s.onerror=()=>{ _pptxLib=null; s.remove(); rej(new Error("Couldn't load the PowerPoint maker. Check the internet connection and try again.")); };
+    document.head.appendChild(s);
+  }));
+}
+const C={blue:"164C9D",amber:"F7941D",navy:"19232B",ink2:"4A5663",ink3:"768392",line:"D6DCE5",bg:"F2F3F5",soft:"E2EAF6",white:"FFFFFF",
+  ok:"1F7A45",okS:"E1F1E6",due:"A14F00",dueS:"FCEBD6",red:"C62828",redS:"FBE3E1",deep:"7A1712",miss:"5A4F9A",missS:"E9E6F6",na:"768392",naS:"EEF0F3"};
+const PST={valid:[C.ok,C.okS],due:[C.due,C.dueS],red:[C.white,C.red],expired:[C.white,C.deep],missing:[C.miss,C.missS],na:[C.na,C.naS]};
+const FONT="Arial";
+function pDate(iso){ return iso?fmtDate(iso):"—"; }
+function pLeft(iso){ const d=daysLeft(iso); return d===null?"Not recorded":d<0?`${-d} d overdue`:d===0?"Today":`${d} d left`; }
+
+function newDeck(Pptx, title){
+  const p=new Pptx(); p.layout="LAYOUT_WIDE"; p.author=(state.session&&state.session.name)||"Rabotec"; p.company="Rabotec"; p.title=title;
+  const stamp=`Status as of ${fmtDate(state.today)} (GMT) · Red flag = expires within ${RED} days · Amber = ${RED+1}–${WINDOW} days`;
+  p.defineSlideMaster({title:"BODY",background:{color:C.white},objects:[
+    {rect:{x:0,y:0,w:0.14,h:7.5,fill:{color:C.blue}}},
+    {rect:{x:0.14,y:0,w:0.06,h:1.05,fill:{color:C.amber}}},
+    {text:{text:"RABOTEC",options:{x:10.35,y:0.28,w:2.55,h:0.3,fontFace:FONT,fontSize:13,bold:true,color:C.blue,align:"right",charSpacing:3}}},
+    {text:{text:"DVLA & INSURANCE REGISTER",options:{x:9.35,y:0.55,w:3.55,h:0.24,fontFace:FONT,fontSize:8,color:C.ink3,align:"right",charSpacing:1}}},
+    {line:{x:0.55,y:7.0,w:12.35,h:0,line:{color:C.line,width:0.75}}},
+    {text:{text:stamp,options:{x:0.55,y:7.05,w:10.5,h:0.3,fontFace:FONT,fontSize:8.5,color:C.ink3}}},
+  ],slideNumber:{x:12.35,y:7.05,w:0.55,h:0.3,fontFace:FONT,fontSize:8.5,color:C.ink3,align:"right"}});
+  return p;
+}
+function slideTitle(s, title, sub){
+  s.addText(title,{x:0.55,y:0.3,w:9,h:0.55,fontFace:FONT,fontSize:26,bold:true,color:C.navy,margin:0});
+  s.addShape("rect",{x:0.55,y:0.92,w:0.7,h:0.06,fill:{color:C.amber},line:{color:C.amber,width:0}});
+  if(sub) s.addText(sub,{x:0.55,y:1.02,w:10.5,h:0.35,fontFace:FONT,fontSize:12,color:C.ink2,margin:0});
+}
+function coverSlide(p, kicker, title, lines, kpis){
+  const s=p.addSlide(); s.background={color:C.blue};
+  s.addShape("rect",{x:0,y:6.85,w:13.33,h:0.65,fill:{color:C.navy},line:{color:C.navy,width:0}});
+  s.addShape("rect",{x:0,y:6.72,w:4.2,h:0.13,fill:{color:C.amber},line:{color:C.amber,width:0}});
+  s.addShape("rect",{x:0.7,y:0.65,w:1.85,h:0.5,fill:{color:C.white},line:{color:C.white,width:0}});
+  s.addText("RABOTEC",{x:0.7,y:0.65,w:1.85,h:0.5,fontFace:FONT,fontSize:17,bold:true,color:C.blue,align:"center",charSpacing:3,margin:0});
+  s.addText(kicker.toUpperCase(),{x:0.7,y:1.95,w:8,h:0.4,fontFace:FONT,fontSize:13,bold:true,color:C.amber,charSpacing:2,margin:0});
+  s.addText(title,{x:0.7,y:2.4,w:7.6,h:1.9,fontFace:FONT,fontSize:38,bold:true,color:C.white,valign:"top",margin:0,fit:"shrink"});
+  s.addText(lines.map((t,i)=>({text:t,options:{breakLine:i<lines.length-1}})),{x:0.7,y:4.45,w:7.6,h:1.6,fontFace:FONT,fontSize:14,color:"D8E3F5",valign:"top",margin:0,paraSpaceAfter:4});
+  s.addText(`Rabotec DVLA & Insurance Register · ${fmtDate(state.today)}`,{x:0.7,y:6.93,w:9,h:0.5,fontFace:FONT,fontSize:11,color:"B9CBEA",margin:0});
+  (kpis||[]).forEach(([val,lbl,col],i)=>{
+    const y=1.55+i*1.3;
+    s.addShape("rect",{x:9.05,y,w:3.55,h:1.1,fill:{color:C.white,transparency:88},line:{color:"FFFFFF",width:0.75,transparency:60}});
+    s.addShape("rect",{x:9.05,y,w:0.09,h:1.1,fill:{color:col||C.amber},line:{color:col||C.amber,width:0}});
+    s.addText(String(val),{x:9.3,y:y+0.08,w:3.2,h:0.6,fontFace:FONT,fontSize:30,bold:true,color:C.white,margin:0});
+    s.addText(lbl.toUpperCase(),{x:9.3,y:y+0.68,w:3.2,h:0.3,fontFace:FONT,fontSize:9.5,color:"D8E3F5",charSpacing:1,margin:0});
+  });
+  return s;
+}
+function kpiCard(s,x,y,w,val,lbl,sub,col){
+  s.addShape("rect",{x,y,w,h:1.15,fill:{color:C.white},line:{color:C.line,width:0.75}});
+  s.addShape("rect",{x,y,w:0.08,h:1.15,fill:{color:col},line:{color:col,width:0}});
+  s.addText(String(val),{x:x+0.22,y:y+0.1,w:w-0.3,h:0.55,fontFace:FONT,fontSize:28,bold:true,color:C.navy,margin:0});
+  s.addText(lbl.toUpperCase(),{x:x+0.22,y:y+0.64,w:w-0.3,h:0.24,fontFace:FONT,fontSize:9,bold:true,color:C.ink2,charSpacing:1,margin:0});
+  if(sub) s.addText(sub,{x:x+0.22,y:y+0.86,w:w-0.3,h:0.22,fontFace:FONT,fontSize:8.5,color:C.ink3,margin:0});
+}
+const hdr = t => ({text:t,options:{bold:true,color:C.white,fill:{color:C.blue},fontSize:9.5}});
+const cell = (t,o) => ({text:String(t??""),options:o||{}});
+function stCell(st,label){ const [c,f]=PST[st]; return cell(label||STATUS_SHORT[st],{color:c,fill:{color:f},bold:true,align:"center"}); }
+function addTable(s, rows, colW, y){
+  s.addTable(rows,{x:0.55,y:y||1.5,w:colW.reduce((a,b)=>a+b,0),colW,fontFace:FONT,fontSize:9.5,color:C.navy,rowH:0.34,valign:"middle",margin:[2,5,2,5],
+    border:{type:"solid",pt:0.5,color:C.line},autoPage:false});
+}
+function pagedTable(p, title, sub, head, body, colW, per){
+  const pages=Math.max(1,Math.ceil(body.length/per));
+  for(let i=0;i<pages;i++){
+    const s=p.addSlide({masterName:"BODY"});
+    slideTitle(s, title+(pages>1?`  (${i+1} of ${pages})`:""), sub);
+    const chunk=body.slice(i*per,(i+1)*per).map((r,j)=>(j%2)?r.map(c=>c.options&&c.options.fill?c:{...c,options:{...c.options,fill:{color:"F7F8FA"}}}):r);
+    addTable(s,[head,...chunk],colW,1.5);
+  }
+}
+
+/** A report for any list of assets: cover, summary with charts, red flags, due list, breakdown by type, full register, notes. */
+async function makeReport(list, scope, fileTag){
+  const Pptx=await loadPptx();
+  const c=counts(list);
+  const legal=c.road?Math.round((c.valid+c.due)/c.road*100):0;
+  const p=newDeck(Pptx,"DVLA & Insurance Report: "+scope);
+  coverSlide(p,"DVLA & Insurance Report",scope,[
+    `${plural(c.total,"asset")} · ${c.road} road-registered · ${c.na} off-road plant`,
+    `Prepared ${fmtDate(state.today)}${state.session&&state.session.name?" by "+state.session.name:""}`,
+    `Red flag = roadworthy or insurance expiring within ${RED} days`,
+  ],[[c.total,"Assets in scope",C.amber],[c.road?legal+"%":"N/A","Road-legal (road assets)",C.ok],[c.flags,"Red flags",C.red],[c.due,`Due in ${RED+1}–${WINDOW} days`,"F0A93A"]]);
+
+  // At a glance
+  let s=p.addSlide({masterName:"BODY"});
+  slideTitle(s,"At a glance",scope);
+  const kw=2.35, kg=0.15;
+  [[c.total,"Assets",`${c.na} off-road plant`,C.blue],[c.road,"Road-registered","need roadworthy + insurance",C.blue],
+   [c.valid+c.due,"Road-legal",`${legal}% of road assets`,C.ok],[c.flags,"Red flags",`${c.red} ≤14 d · ${c.expired} expired · ${c.missing} missing`,C.red],
+   [c.due,"Due in 15–30 days","book renewals now",C.amber]].forEach(([v,l,sb,col],i)=>kpiCard(s,0.55+i*(kw+kg),1.5,kw,v,l,sb,col));
+  if(c.road){
+    const segs=[["Valid",c.valid,C.ok],[`Due ${RED+1}–${WINDOW} d`,c.due,"F0A93A"],[`≤ ${RED} days`,c.red,C.red],["Expired",c.expired,C.deep],["Missing",c.missing,C.miss]].filter(x=>x[1]);
+    s.addText("ROAD ASSETS BY STATUS",{x:0.55,y:2.95,w:5,h:0.3,fontFace:FONT,fontSize:10,bold:true,color:C.ink2,charSpacing:1,margin:0});
+    s.addChart("doughnut",[{name:"Status",labels:segs.map(x=>x[0]),values:segs.map(x=>x[1])}],{x:0.45,y:3.25,w:5.2,h:3.6,holeSize:58,chartColors:segs.map(x=>x[2]),
+      showLegend:true,legendPos:"r",legendFontFace:FONT,legendFontSize:10,legendColor:C.navy,showValue:true,showPercent:false,dataLabelColor:C.white,dataLabelFontSize:10,dataLabelFontBold:true,
+      showTitle:false,dataBorder:{pt:1,color:"FFFFFF"}});
+  } else {
+    s.addShape("rect",{x:0.55,y:3.1,w:5,h:3.6,fill:{color:C.bg},line:{color:C.line,width:0.5}});
+    s.addText([{text:"No road-registered assets",options:{bold:true,fontSize:16,color:C.navy,breakLine:true}},{text:"This selection is off-road plant and mining equipment. No roadworthy certificate or insurance dates are tracked for it.",options:{fontSize:11,color:C.ink2}}],
+      {x:0.85,y:3.4,w:4.4,h:3,fontFace:FONT,valign:"middle"});
+  }
+  const typesIn=TYPES.map(t=>({t,l:list.filter(v=>v.group===t.code)})).filter(x=>x.l.length);
+  const roadTypes=typesIn.filter(x=>x.l.some(roadAsset)).sort((a,b)=>b.l.length-a.l.length).slice(0,10);
+  if(roadTypes.length>1){
+    s.addText("ROAD ASSETS BY FLEET TYPE",{x:6.1,y:2.95,w:6.8,h:0.3,fontFace:FONT,fontSize:10,bold:true,color:C.ink2,charSpacing:1,margin:0});
+    const labels=roadTypes.map(x=>x.t.name).reverse(), ser=[["Valid","valid",C.ok],[`${RED+1}–${WINDOW} d`,"due","F0A93A"],[`≤ ${RED} d`,"red",C.red],["Expired","expired",C.deep],["Missing","missing",C.miss]];
+    s.addChart("bar",ser.map(([n,k])=>({name:n,labels,values:roadTypes.map(x=>counts(x.l)[k]).reverse()})),{x:6.0,y:3.2,w:6.95,h:3.7,barDir:"bar",barGrouping:"stacked",chartColors:ser.map(x=>x[2]),
+      showLegend:true,legendPos:"b",legendFontFace:FONT,legendFontSize:9,catAxisLabelFontFace:FONT,catAxisLabelFontSize:9,valAxisLabelFontSize:8,valAxisLabelFontFace:FONT,
+      catAxisLabelColor:C.navy,valAxisLabelColor:C.ink3,valGridLine:{color:"E6E9EE",size:0.5},catGridLine:{style:"none"},barGapWidthPct:45});
+  } else {
+    // expiry horizon by month: overdue + next 6 months
+    const lab=["Overdue"], rw=[0], ins=[0];
+    for(let m=0;m<6;m++){ const d=new Date(toDay(state.today)); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth()+m); lab.push(MONTHS[d.getUTCMonth()]+" "+String(d.getUTCFullYear()).slice(2)); rw.push(0); ins.push(0); }
+    const base=new Date(toDay(state.today)); const mIdx=iso=>{ const d=new Date(toDay(iso)); return (d.getUTCFullYear()-base.getUTCFullYear())*12+d.getUTCMonth()-base.getUTCMonth(); };
+    list.filter(v=>inService(v)&&roadAsset(v)).forEach(v=>[[rw,v.rwExp],[ins,v.insExp]].forEach(([arr,dt])=>{ if(!dt) return; const l=daysLeft(dt); if(l<0){arr[0]++;return;} const m=mIdx(dt); if(m>=0&&m<6) arr[m+1]++; }));
+    s.addText("DOCUMENTS EXPIRING BY MONTH",{x:6.1,y:2.95,w:6.8,h:0.3,fontFace:FONT,fontSize:10,bold:true,color:C.ink2,charSpacing:1,margin:0});
+    s.addChart("bar",[{name:"Roadworthy",labels:lab,values:rw},{name:"Insurance",labels:lab,values:ins}],{x:6.0,y:3.2,w:6.95,h:3.7,barDir:"col",barGrouping:"clustered",chartColors:[C.blue,C.amber],
+      showLegend:true,legendPos:"b",legendFontFace:FONT,legendFontSize:9,catAxisLabelFontFace:FONT,catAxisLabelFontSize:9,valAxisLabelFontSize:8,catAxisLabelColor:C.navy,valAxisLabelColor:C.ink3,
+      valGridLine:{color:"E6E9EE",size:0.5},catGridLine:{style:"none"},showValue:true,dataLabelFontSize:8,dataLabelColor:C.navy,barGapWidthPct:60});
+  }
+
+  // Red flags and due list: one row per asset, showing both documents
+  const docCellP=(v,k)=>{ const s2=docStatus(v[k]); return cell(`${pDate(v[k])}\n${pLeft(v[k])}`,{color:s2==="valid"?C.ok:s2==="due"?C.due:s2==="missing"?C.miss:C.red,bold:s2!=="valid",fontSize:8.5}); };
+  const assetRows=vs=>vs.map(v=>[cell(v.fleetNo||"—",{bold:true}),cell(v.reg||"—"),cell(typeName(v.group)),cell(`${v.unit.replace("Rabotec ","")} · ${v.site}`),cell(v.op||"Active"),docCellP(v,"rwExp"),docCellP(v,"insExp"),stCell(vehStatus(v))]);
+  const aHead=[hdr("Fleet no."),hdr("Registration"),hdr("Fleet type"),hdr("Unit · site"),hdr("Operating"),hdr("Roadworthy"),hdr("Insurance"),hdr("Flag")];
+  const aW=[1.2,1.45,1.95,2.3,1.25,1.6,1.6,1.0];
+  const urgency=v=>{ const d=[v.rwExp,v.insExp], l=d.map(x=>daysLeft(x)), st=d.map(x=>docStatus(x)), pick=s=>l.filter((x,i)=>st[i]===s);
+    if(st.includes("red")) return Math.min(...pick("red"));                       // expiring within 2 weeks: soonest first
+    if(st.includes("expired")) return 1e6-Math.max(...pick("expired"));           // then the most recently expired
+    if(st.includes("missing")) return 3e6;
+    return 4e6+Math.min(...l.filter(x=>x!==null)); };
+  const road=list.filter(v=>inService(v)&&roadAsset(v));
+  const flagAssets=road.filter(v=>isFlag(vehStatus(v))).sort((a,b)=>urgency(a)-urgency(b));
+  const dueAssets=road.filter(v=>vehStatus(v)==="due").sort((a,b)=>urgency(a)-urgency(b));
+  const redSoon=road.filter(v=>docStatus(v.rwExp)==="red"||docStatus(v.insExp)==="red").length;
+  if(c.road){
+    if(flagAssets.length){
+      pagedTable(p,"Red flags: act within 2 weeks",`${plural(flagAssets.length,"asset")}: ${redSoon} with a document expiring by ${fmtDate(addDays(state.today,RED))}, the rest expired or not recorded (most urgent first)`,aHead,assetRows(flagAssets),aW,12);
+    } else {
+      s=p.addSlide({masterName:"BODY"}); slideTitle(s,"Red flags: act within 2 weeks",scope);
+      s.addShape("rect",{x:0.55,y:1.7,w:12.35,h:1.5,fill:{color:C.okS},line:{color:C.okS,width:0}});
+      s.addText([{text:"No red flags",options:{bold:true,fontSize:22,color:C.ok,breakLine:true}},{text:`Every road-registered asset in this selection has a roadworthy certificate and insurance valid for more than ${RED} days.`,options:{fontSize:13,color:C.navy}}],{x:0.9,y:1.8,w:11.6,h:1.3,fontFace:FONT,valign:"middle"});
+    }
+    if(dueAssets.length) pagedTable(p,`Due in ${RED+1} to ${WINDOW} days`,`${plural(dueAssets.length,"asset")} to book for renewal`,aHead,assetRows(dueAssets),aW,12);
+  }
+
+  // Breakdown by fleet type
+  if(typesIn.length>1){
+    const body=typesIn.sort((a,b)=>CATS.findIndex(x=>x.id===a.t.cat)-CATS.findIndex(x=>x.id===b.t.cat)||b.l.length-a.l.length).map(({t,l})=>{const k=counts(l); const pct=k.road?Math.round((k.valid+k.due)/k.road*100)+"%":"N/A";
+      return [cell(`${t.code} · ${t.name}`,{bold:true}),cell(catName(t.cat)),cell(k.total,{align:"center"}),cell(k.road,{align:"center"}),cell(k.valid||"",{align:"center",color:C.ok}),cell(k.due||"",{align:"center",color:C.due}),
+        k.red?stCell("red",String(k.red)):cell(""),k.expired?stCell("expired",String(k.expired)):cell(""),k.missing?stCell("missing",String(k.missing)):cell(""),cell(pct,{align:"center",bold:true})];});
+    const k=c; body.push([cell("Total",{bold:true}),cell(""),cell(k.total,{align:"center",bold:true}),cell(k.road,{align:"center",bold:true}),cell(k.valid,{align:"center",bold:true}),cell(k.due,{align:"center",bold:true}),cell(k.red,{align:"center",bold:true}),cell(k.expired,{align:"center",bold:true}),cell(k.missing,{align:"center",bold:true}),cell(k.road?legal+"%":"N/A",{align:"center",bold:true})].map(x=>({...x,options:{...x.options,fill:{color:C.soft}}})));
+    pagedTable(p,"Summary by fleet type",scope,[hdr("Fleet type"),hdr("Category"),hdr("Assets"),hdr("Road"),hdr("Valid"),hdr("15–30 d"),hdr("≤ 14 d"),hdr("Expired"),hdr("Missing"),hdr("Road-legal")],body,[2.6,2.3,0.9,0.9,0.9,0.95,0.95,0.95,0.95,1.0],14);
+  }
+
+  // Register
+  const listed=new Set([...flagAssets,...dueAssets]);
+  const reg=list.filter(v=>!listed.has(v)).sort((a,b)=>RANK[vehStatus(a)]-RANK[vehStatus(b)]||String(a.group).localeCompare(b.group)||assetName(a).localeCompare(assetName(b),undefined,{numeric:true}));
+  const regBody=reg.map(v=>{ const st=vehStatus(v), r=roadAsset(v); const dc=k=>{ if(!r) return cell("—",{color:C.ink3,align:"center"}); const s2=docStatus(v[k]); return cell(pDate(v[k]),{color:s2==="valid"?C.navy:s2==="due"?C.due:s2==="missing"?C.miss:C.red,bold:s2!=="valid"}); };
+    return [cell(v.fleetNo||"—",{bold:true}),cell(v.reg||"—"),cell(typeName(v.group)),cell(v.unit.replace("Rabotec ","")),cell(v.site||"—"),cell(v.model||"—"),cell(v.op||"Active"),dc("rwExp"),dc("insExp"),stCell(st)]; });
+  if(reg.length) pagedTable(p,listed.size?"Other assets":"Asset register",listed.size?`${plural(reg.length,"asset")} not listed above: valid, off-road plant${reg.some(v=>!inService(v))?" or retired":""}`:`${plural(reg.length,"asset")} · worst status first`,[hdr("Fleet no."),hdr("Registration"),hdr("Fleet type"),hdr("Unit"),hdr("Site"),hdr("Make / model"),hdr("Operating"),hdr("Roadworthy"),hdr("Insurance"),hdr("Status")],
+    regBody,[1.0,1.35,1.75,0.85,1.05,1.95,1.05,1.15,1.15,1.05],14);
+
+  // Notes
+  s=p.addSlide({masterName:"BODY"}); slideTitle(s,"Notes","How to read this report");
+  const noReg=list.filter(v=>!v.fleetNo).length, noModel=list.filter(v=>!v.model).length;
+  const notes=[
+    `Scope: ${scope}. ${plural(c.total,"asset")}${list.some(v=>v.op==="Retired")?" including retired assets":", retired and archived assets left out"}.`,
+    `Status is worked out from the recorded roadworthy and insurance expiry dates, as of ${fmtDate(state.today)} (GMT).`,
+    `Red flag: a document expires within ${RED} days (2 weeks), has expired, or is not recorded. Amber: expires in ${RED+1} to ${WINDOW} days.`,
+    `Off-road plant and mining equipment with no registration are listed as N/A: no DVLA documents are tracked for them.`,
+    `Starting data was imported from the Mining and Project DVLA / insurance trackers (23 Jul 2026) and the Mining asset register (4 Aug 2026). Each asset's imported history is kept in the register.`,
+    ...(noReg?[`${plural(noReg,"asset")} in this report ${noReg===1?"has":"have"} no fleet number.`]:[]),
+    ...(noModel?[`${plural(noModel,"asset")} ${noModel===1?"has":"have"} no make or model recorded.`]:[]),
+    `Check the original documents during inspections. Update the register when a renewal is done so the next report is correct.`,
+  ];
+  s.addText(notes.map((t,i)=>({text:t,options:{bullet:{code:"25A0"},breakLine:i<notes.length-1}})),{x:0.55,y:1.55,w:12.3,h:5.2,fontFace:FONT,fontSize:13,color:C.navy,valign:"top",paraSpaceAfter:10});
+  await p.writeFile({fileName:`Rabotec-DVLA-Insurance-Report-${slug(fileTag||scope)}-${state.today}.pptx`});
+}
+
+/** A report for one asset: cover, profile with both documents, and its history. */
+async function makeAssetReport(v){
+  const Pptx=await loadPptx();
+  if(!state.demo&&!Array.isArray(state.hist[v.id])){ try{ const r=await api("history",{id:v.id}); state.hist[v.id]=r.activity||[]; }catch(e){} }
+  const st=vehStatus(v), road=roadAsset(v), hist=historyOf(v);
+  const p=newDeck(Pptx,"Asset report: "+assetName(v));
+  coverSlide(p,"Asset report",`${assetName(v)}${v.fleetNo&&v.reg?"\n"+v.reg:""}`,[`${typeName(v.group)} · ${v.model||"Model not recorded"}`,`${v.unit} · ${v.site||"Site not recorded"} · ${v.op||"Active"}`,`Prepared ${fmtDate(state.today)}${state.session&&state.session.name?" by "+state.session.name:""}`],
+    road?[[STATUS_SHORT[st],"Overall status",PST[st][1]===C.okS?C.ok:st==="due"?"F0A93A":st==="missing"?C.miss:C.red],[pLeft(v.rwExp),"Roadworthy",C.amber],[pLeft(v.insExp),"Insurance",C.amber]]:[["N/A","Off-road: no DVLA documents",C.amber]]);
+  const s=p.addSlide({masterName:"BODY"});
+  slideTitle(s,"Asset profile",`${assetName(v)} · ${typeName(v.group)}`);
+  const kv=[["Fleet no.",v.fleetNo],["Registration",v.reg||"Not registered"],["Fleet type",`${v.group} · ${typeName(v.group)}`],["Category",catName(catOf(v.group))],["Business unit",v.unit],["Site",v.site],["Operating status",v.op||"Active"],
+    ["Make / model",v.model],["Chassis / serial no.",v.serialNo],["Engine",[v.engineModel,v.engineNo].filter(Boolean).join(" · ")],["Responsible person",v.responsible],["In asset register",v.inRegister]];
+  s.addTable(kv.map(([k,val],i)=>[cell(k,{bold:true,color:C.ink2,fill:{color:i%2?"FFFFFF":"F7F8FA"}}),cell(val||"Not recorded",{fill:{color:i%2?"FFFFFF":"F7F8FA"}})]),{x:0.55,y:1.55,w:6.0,colW:[2.1,3.9],fontFace:FONT,fontSize:10.5,color:C.navy,rowH:0.38,valign:"middle",border:{type:"solid",pt:0.5,color:C.line},margin:[2,6,2,6]});
+  const doc=(x,y,label,exp,lines)=>{ const s2=road?docStatus(exp):"na"; const [fc,bg]=PST[s2];
+    s.addShape("rect",{x,y,w:5.95,h:2.1,fill:{color:C.white},line:{color:C.line,width:0.75}});
+    s.addShape("rect",{x,y,w:1.9,h:2.1,fill:{color:bg},line:{color:bg,width:0}});
+    s.addText([{text:road&&exp?MONTHS[+exp.slice(5,7)-1].toUpperCase():"—",options:{fontSize:24,bold:true,breakLine:true}},{text:road&&exp?exp.slice(0,4):road?"NONE":"N/A",options:{fontSize:13}}],{x,y:y+0.2,w:1.9,h:1.2,fontFace:FONT,color:fc,align:"center",valign:"middle"});
+    s.addText(STATUS_SHORT[s2].toUpperCase(),{x,y:y+1.45,w:1.9,h:0.35,fontFace:FONT,fontSize:10,bold:true,color:fc,align:"center",charSpacing:1});
+    s.addText([{text:label,options:{bold:true,fontSize:15,color:C.navy,breakLine:true}},{text:road?`Expires ${pDate(exp)} · ${pLeft(exp)}`:"Not tracked for off-road assets",options:{fontSize:11,color:s2==="valid"?C.ok:s2==="due"?C.due:s2==="na"?C.ink3:C.red,bold:true,breakLine:true}},
+      ...lines.map((t,i)=>({text:t,options:{fontSize:10.5,color:C.ink2,breakLine:i<lines.length-1}}))],{x:x+2.1,y:y+0.15,w:3.7,h:1.8,fontFace:FONT,valign:"top",paraSpaceAfter:3});
+  };
+  doc(6.95,1.55,"Roadworthy certificate",v.rwExp,[v.rwNo?"Certificate "+v.rwNo:"No certificate number",v.rwIssue?"Issued "+pDate(v.rwIssue):""].filter(Boolean));
+  doc(6.95,3.85,"Insurance",v.insExp,[v.insurer||"No insurer recorded",v.policyNo?"Policy "+v.policyNo:"",v.insIssue?"From "+pDate(v.insIssue):""].filter(Boolean));
+  if(v.notes) s.addText("Notes: "+v.notes,{x:0.55,y:6.35,w:12.3,h:0.55,fontFace:FONT,fontSize:9.5,color:C.ink2,valign:"top",fit:"shrink"});
+  if(hist.length){
+    const body=hist.slice(0,60).map(e=>{ const d=new Date(e.at); const when=Number.isNaN(d.getTime())?"":d.toLocaleDateString("en-GB",{timeZone:"UTC",day:"2-digit",month:"short",year:"numeric"});
+      const ch=(e.changes||[]).slice(0,6).map(c=>`${FIELDS[c.f]||c.f}: ${c.from!==""&&c.from!=null&&!/^Imported/.test(e.action)?fmtVal(c.f,c.from)+" → ":""}${fmtVal(c.f,c.to)}`).join("; ");
+      return [cell(when),cell(e.action,{bold:true}),cell(ch||"—",{fontSize:8.5}),cell(e.by||"")]; });
+    pagedTable(p,"History",`${assetName(v)} · newest first`,[hdr("Date"),hdr("What happened"),hdr("Details"),hdr("By")],body,[1.3,3.1,6.2,1.75],11);
+  }
+  await p.writeFile({fileName:`Rabotec-Asset-Report-${slug(assetName(v))}-${state.today}.pptx`});
+}
+async function runReport(btn, fn){
+  const label=btn?btn.innerHTML:""; if(btn){ btn.disabled=true; btn.textContent="Making report…"; }
+  try{ await fn(); toast("Report downloaded. Open it in PowerPoint or Google Slides."); }
+  catch(e){ console.error(e); toast(e.message||"The report couldn't be made."); }
+  finally{ if(btn&&btn.isConnected){ btn.disabled=false; btn.innerHTML=label; } }
 }
 
 /* ───────── events ───────── */
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-open],a"); if(!t) return;
   if(t.hasAttribute("data-close")){ t.closest("dialog").close(); return; }
-  if(t.dataset.go){ const f={}; if(t.dataset.group) f.group=t.dataset.group; if(t.dataset.status) f.status=t.dataset.status; closeAll(); go(t.dataset.go,f); return; }
+  if(t.dataset.go){ const f={}; ["cat","group","status","unit"].forEach(k=>{ if(t.dataset[k]) f[k]=t.dataset[k]; }); closeAll(); go(t.dataset.go,f); return; }
   if(t.dataset.open){ openDetail(t.dataset.open); return; }
   if(t.dataset.edit){ openEdit(t.dataset.edit); return; }
   if(t.dataset.renew){ openRenew(t.dataset.renew,t.dataset.kind); return; }
   if(t.dataset.archive){ toggleArchive(t.dataset.archive); return; }
+  if(t.dataset.reportAsset){ const v=findV(t.dataset.reportAsset); if(v) runReport(t,()=>makeAssetReport(v)); return; }
+  if(t.dataset.reportType){ const f={...state.r,group:t.dataset.reportType}; const list=reportList().filter(v=>v.group===f.group); runReport(t,()=>makeReport(list,reportTitle(f),reportTitle(f))); return; }
+  if(t.dataset.reportSite){ const f={...state.r,site:t.dataset.reportSite,unit:t.dataset.unit}; const list=reportList().filter(v=>v.site===f.site&&v.unit===f.unit); runReport(t,()=>makeReport(list,reportTitle(f))); return; }
+  if(t.dataset.viewType){ go("assets",{unit:state.r.unit,site:state.r.site,op:state.r.op,status:state.r.status,group:t.dataset.viewType}); return; }
   if(t.dataset.sort){ const k=t.dataset.sort; state.sort = state.sort.key===k?{key:k,dir:-state.sort.dir}:{key:k,dir:1}; $("#reg-results").innerHTML=registerResults(); return; }
   if(t.dataset.arch!==undefined){ state.f.archived=t.dataset.arch==="1"; render(); return; }
   if(t.dataset.si){ signinMode=t.dataset.si; const em=$("#si-email"); if(em) signinEmail=em.value.trim().toLowerCase(); renderSignin(true); return; }
@@ -1226,22 +1647,30 @@ document.addEventListener("click",e=>{
   const a=t.dataset.act;
   if(a==="add") openEdit(null);
   else if(a==="import") openImport();
-  else if(a==="export") exportCSV(false);
-  else if(a==="template") exportCSV(true);
+  else if(a==="export") exportCSV(filtered(), `rabotec-assets-${state.demo?"sample-":""}${state.today}.csv`);
+  else if(a==="template") exportCSV([], "rabotec-asset-import-template.csv", true);
+  else if(a==="report-assets"){ const list=filtered(); if(!list.length){ toast("No assets match, so there's nothing to report."); return; } const f=state.f; const scope=[f.group?typeName(f.group):f.cat?catName(f.cat):"All fleet types",f.unit,f.site,f.op,f.status?(f.status==="flag"?"Red flags":STATUS_LABEL[f.status]):"",f.q?`"${f.q}"`:"",f.archived?"Archived":""].filter(Boolean).join(" · "); runReport(t,()=>makeReport(list,scope)); }
+  else if(a==="report-flags"){ const list=service().filter(v=>isFlag(vehStatus(v))); if(!list.length){ toast("No red flags right now."); return; } runReport(t,()=>makeReport(list,"Red flags · all fleet types","red-flags")); }
+  else if(a==="r-ppt"){ const list=reportList(); runReport(t,()=>makeReport(list,reportTitle(state.r))); }
+  else if(a==="r-csv"){ exportCSV(reportList(), `rabotec-report-${slug(reportTitle(state.r))}-${state.today}.csv`); }
+  else if(a==="r-clear"){ state.r={unit:"",cat:"",group:"",site:"",op:"",status:"",retired:false}; render(); }
+  else if(a==="more"){ state.limit+=300; $("#reg-results").innerHTML=registerResults(); }
   else if(a==="help") openHelp();
   else if(a==="demo-on"){ state.demo=true; render(); }
   else if(a==="demo-off"){ state.demo=false; closeAll(); render(); }
   else if(a==="refresh"){ refresh(false).then(()=>{ if(state.dbState==="live") toast("Register up to date"); }); }
   else if(a==="signout"){ signOut(false); }
   else if(a==="users-refresh"){ state.usersLoaded=false; render(); }
-  else if(a==="clear"){ go("register"); }
+  else if(a==="clear"){ go("assets"); }
 });
 document.addEventListener("keydown",e=>{ if(e.key==="Enter"){ const tr=e.target.closest&&e.target.closest("tr[data-open]"); if(tr) openDetail(tr.dataset.open); } });
-document.addEventListener("input",e=>{ if(e.target.id==="q"){ state.f.q=e.target.value; $("#reg-results").innerHTML=registerResults(); } });
+document.addEventListener("input",e=>{ if(e.target.id==="q"){ state.f.q=e.target.value; state.limit=150; $("#reg-results").innerHTML=registerResults(); } });
 document.addEventListener("change",e=>{
-  const m={"f-group":"group","f-site":"site","f-status":"status"}[e.target.id];
+  const id=e.target.id||"";
   if(e.target.dataset&&e.target.dataset.roleFor){ const em=e.target.dataset.roleFor, role=e.target.value; teamAction(()=>api("userSave",{email:em,role,invite:false}), ()=>`${em} is now ${role==="admin"?"an admin":"a"+(role==="editor"?"n editor":" viewer")}.`); return; }
-  if(m){ state.f[m]=e.target.value; if(m==="group") renderNav(); $("#reg-results").innerHTML=registerResults(); }
+  if(id==="r-retired"){ state.r.retired=e.target.checked; render(); return; }
+  const m=/^(f|r)-(unit|cat|group|site|op|status)$/.exec(id);
+  if(m){ const f=m[1]==="f"?state.f:state.r; f[m[2]]=e.target.value; if(m[2]==="cat"&&f.group&&catOf(f.group)!==f.cat&&f.cat) f.group=""; state.limit=150; render(); }
 });
 function closeAll(){ document.querySelectorAll("dialog[open]").forEach(d=>d.close()); }
 setInterval(()=>{ const t=todayISO(); if(t!==state.today){ state.today=t; render(); } },60000);

@@ -1,5 +1,5 @@
 /**
- * Rabotec DVLA & Insurance Register — Google Apps Script backend (v2: personal accounts)
+ * Rabotec DVLA & Insurance Register — Google Apps Script backend (v3: all assets, 14-day alerts, history import)
  * ------------------------------------------------------------
  * Stores the vehicle register in a Google Sheet and serves it to the
  * GitHub Pages front end (index.html). Everyone signs in with their own
@@ -35,22 +35,36 @@ const SETTINGS = {
 const VEH_SHEET = 'Vehicles';
 const ACT_SHEET = 'Activity';
 const USR_SHEET = 'Users';
+// New columns are only ever added at the end, so older rows keep lining up.
 const COLS = ['id','reg','fleetNo','group','site','op','model','responsible','rwNo','rwIssue','rwExp',
-              'insurer','policyNo','insExp','notes','archived','rev','createdAt','updatedAt','updatedBy'];
-const HEADINGS = ['ID','Registration','Fleet no.','Group','Site','Operating status','Make / model','Responsible person',
+              'insurer','policyNo','insExp','notes','archived','rev','createdAt','updatedAt','updatedBy',
+              'unit','insIssue','serialNo','engineModel','engineNo','inRegister'];
+const HEADINGS = ['ID','Registration','Fleet no.','Fleet type','Site','Operating status','Make / model','Responsible person',
                   'Roadworthy cert. no.','Roadworthy issued','Roadworthy expiry','Insurer','Policy no.','Insurance expiry',
-                  'Notes','Archived','Revision','Created (UTC)','Updated (UTC)','Updated by'];
+                  'Notes','Archived','Revision','Created (UTC)','Updated (UTC)','Updated by',
+                  'Business unit','Insurance issued','Chassis / serial no.','Engine model','Engine no.','In asset register'];
 const ACT_COLS = ['at','vehicleId','reg','action','by','changes','byEmail'];
 const ACT_HEADINGS = ['Time (UTC)','Vehicle ID','Registration','Action','By','Changes (JSON)','By (email)'];
 const USR_COLS = ['email','name','role','status','hash','salt','pwv','failed','lockedUntil','codeHash','codeExpires','codeTries',
                   'createdAt','addedBy','lastLogin'];
 const USR_HEADINGS = ['Email','Name','Role','Status','Password hash (do not edit)','Salt','Password version','Failed sign-ins',
                       'Locked until (UTC)','Code hash','Code expires (UTC)','Code tries','Added (UTC)','Added by','Last sign-in (UTC)'];
-const EDITABLE = ['reg','fleetNo','group','site','op','model','responsible','rwNo','rwIssue','rwExp','insurer','policyNo','insExp','notes','archived'];
-const DATE_KEYS = ['rwIssue','rwExp','insExp'];
-const GROUPS = ['LV','DT','ADT','ST','LB'];
-const SITES = ['Abore Pit','Esaase Pit','Other'];
-const OPS = ['Active','Under maintenance','Grounded'];
+const EDITABLE = ['reg','fleetNo','group','unit','site','op','model','responsible','serialNo','engineModel','engineNo','inRegister',
+                  'rwNo','rwIssue','rwExp','insurer','policyNo','insIssue','insExp','notes','archived'];
+const DATE_KEYS = ['rwIssue','rwExp','insIssue','insExp'];
+// Fleet types (code = fleet-number prefix). Keep in step with TYPES in index.html.
+const TYPES = {
+  LV:'Light vehicle', FV:'Van', BS:'Bus', CT:'Cargo truck', TT:'Tipper truck', WT:'Water tanker', FT:'Fuel tanker',
+  ST:'Service truck', HT:'Haulage tractor', FB:'Flatbed truck', LB:'Low bed', CN:'Crane', DT:'Rigid dump truck',
+  AT:'Articulated dump truck', EX:'Excavator', DZ:'Dozer', GR:'Grader', WL:'Wheel loader', BH:'Backhoe loader',
+  RC:'Roller / compactor', TH:'Telehandler', DR:'Drill rig', DP:'Pump', GS:'Generator & site plant', LT:'Lighting tower',
+  MC:'Crushing & screening', OT:'Other',
+};
+const LEGACY_TYPES = { ADT: 'AT' };
+const UNITS = ['Rabotec Mining','Rabotec Project'];
+const OPS = ['Active','Parked','Down','Out of site','Retired','Not confirmed'];
+const LEGACY_OPS = { 'Under maintenance': 'Down', 'Grounded': 'Parked' };
+const RED_DAYS = 14;         // red flag: expires within 2 weeks
 const ROLES = ['admin','editor','viewer'];
 const ACTIVITY_RETURNED = 500;
 const WINDOW_DAYS = 30;
@@ -80,6 +94,7 @@ function doPost(e) {
     switch (req.action) {
       case 'me':   return json_({ ok: true, user: publicUser_(me) });
       case 'list': return json_(Object.assign({ ok: true, user: publicUser_(me) }, list_()));
+      case 'history': return json_({ ok: true, activity: history_(req.id) });
       case 'save':
         requireRole_(me, 'editor');
         return json_(once_(req.rid, () => save_(req.vehicle, req.rev, me, req.label)));
@@ -353,6 +368,20 @@ function list_() {
   return { vehicles: vehicles, activity: activity, serverTime: new Date().toISOString() };
 }
 
+/** Every Activity row for one asset, newest first (the main list only carries the latest rows). */
+function history_(id) {
+  id = String(id || '');
+  if (!id) return [];
+  const as = sheet_(ACT_SHEET);
+  const n = as.getLastRow() - 1;
+  if (n < 1) return [];
+  return as.getRange(2, 1, n, ACT_COLS.length).getValues().filter(r => String(r[1]) === id).map(r => {
+    let changes = [];
+    try { changes = JSON.parse(String(r[5] || '[]')); } catch (e) {}
+    return { at: iso_(r[0]), vehicleId: text_(r[1]), reg: text_(r[2]), action: text_(r[3]), by: text_(r[4]), changes: changes, byEmail: text_(r[6]) };
+  }).reverse();
+}
+
 /* ---------------- write ---------------- */
 /**
  * Runs a change at most once per request ID. Google sometimes runs a request but fails to deliver
@@ -378,11 +407,11 @@ function withLock_(fn) {
 }
 
 function saveMany_(items, me) {
-  if (!Array.isArray(items) || !items.length || items.length > 100) throw err_('Send between 1 and 100 vehicles at a time.', 'bad');
+  if (!Array.isArray(items) || !items.length || items.length > 100) throw err_('Send between 1 and 100 assets at a time.', 'bad');
   const ctx = context_();
   const results = items.map(it => {
     try { return save_(it.vehicle, it.rev, me, it.label, ctx); }
-    catch (e) { return { ok: false, error: e.message, reg: it && it.vehicle && it.vehicle.reg }; }
+    catch (e) { return { ok: false, error: e.message, reg: it && it.vehicle && (it.vehicle.reg || it.vehicle.fleetNo) }; }
   });
   return { ok: true, results: results };
 }
@@ -399,36 +428,41 @@ function save_(input, rev, me, label, ctx) {
   const v = sanitize_(input);
   const now = new Date().toISOString();
   const idx = v.id ? ctx.all.findIndex(r => r.id === v.id) : -1;
-  if (v.id && idx < 0) throw err_('This vehicle no longer exists. Refresh the register.', 'gone');
-  const key = regKey_(v.reg);
-  const dup = ctx.all.find(r => r.id !== v.id && regKey_(r.reg) === key);
-  if (dup) throw err_('Registration ' + v.reg + ' is already on the register (check archived vehicles too).', 'duplicate');
+  if (v.id && idx < 0) throw err_('This asset no longer exists. Refresh the register.', 'gone');
+  if (v.reg) {
+    const key = regKey_(v.reg);
+    if (ctx.all.find(r => r.id !== v.id && regKey_(r.reg) === key)) throw err_('Registration ' + v.reg + ' is already on the register (check archived assets too).', 'duplicate');
+  }
+  if (v.fleetNo) {
+    const fk = regKey_(v.fleetNo);
+    if (ctx.all.find(r => r.id !== v.id && regKey_(r.fleetNo) === fk)) throw err_('Fleet no. ' + v.fleetNo + ' is already on the register (check archived assets too).', 'duplicate');
+  }
 
   let action, changes, row;
   if (idx >= 0) {
     const prev = fromRow_(ctx.all[idx]);
     if (Number(rev) !== Number(prev.rev)) {
-      throw err_('Someone else saved ' + prev.reg + ' while you were editing. Reopen the vehicle and make your change again.', 'conflict');
+      throw err_('Someone else saved ' + name_(prev) + ' while you were editing. Reopen the vehicle and make your change again.', 'conflict');
     }
     changes = EDITABLE.filter(k => String(prev[k]) !== String(v[k])).map(k => ({ f: k, from: prev[k], to: v[k] }));
     if (!changes.length) return { ok: true, unchanged: true, vehicle: prev };
-    action = cleanLabel_(label) || (prev.archived !== v.archived ? (v.archived ? 'Vehicle archived' : 'Vehicle restored') : 'Vehicle updated');
+    action = cleanLabel_(label) || (prev.archived !== v.archived ? (v.archived ? 'Asset archived' : 'Asset restored') : 'Asset updated');
     row = Object.assign({}, prev, v, { rev: prev.rev + 1, updatedAt: now, updatedBy: by });
     ctx.vs.getRange(idx + 2, 1, 1, COLS.length).setValues([toRow_(row)]);
     ctx.all[idx] = row;
   } else {
-    action = cleanLabel_(label) || 'Vehicle added';
-    changes = [{ f: 'reg', from: '', to: v.reg }];
+    action = cleanLabel_(label) || 'Asset added';
+    changes = EDITABLE.filter(k => k !== 'archived' && v[k]).map(k => ({ f: k, from: '', to: v[k] }));
     row = Object.assign({}, v, { id: Utilities.getUuid(), rev: 1, createdAt: now, updatedAt: now, updatedBy: by });
     ctx.vs.appendRow(toRow_(row));
     ctx.all.push(row);
   }
-  ctx.as.appendRow([now, row.id, row.reg, action, by, JSON.stringify(changes), me.email].map(safeCell_));
+  ctx.as.appendRow([now, row.id, name_(row), action, by, JSON.stringify(changes), me.email].map(safeCell_));
   return { ok: true, vehicle: fromRow_(row) };
 }
 
 function sanitize_(x) {
-  if (!x || typeof x !== 'object') throw err_('Missing vehicle details.', 'bad');
+  if (!x || typeof x !== 'object') throw err_('Missing asset details.', 'bad');
   const v = { id: text_(x.id).slice(0, 60) };
   EDITABLE.forEach(k => {
     if (k === 'archived') { v.archived = x.archived === true || x.archived === 'true'; return; }
@@ -437,14 +471,21 @@ function sanitize_(x) {
     v[k] = s;
   });
   v.reg = v.reg.toUpperCase().replace(/\s+/g, ' ');
-  if (!v.reg) throw err_('Registration is required.', 'bad');
-  if (GROUPS.indexOf(v.group) < 0) throw err_('Choose a valid vehicle group for ' + v.reg + '.', 'bad');
-  if (SITES.indexOf(v.site) < 0) v.site = 'Other';
+  v.fleetNo = v.fleetNo.toUpperCase().replace(/\s+/g, '');
+  if (!v.reg && !v.fleetNo) throw err_('Enter a fleet no. or a registration.', 'bad');
+  const nm = v.fleetNo || v.reg;
+  v.group = LEGACY_TYPES[v.group] || v.group;
+  if (!TYPES[v.group]) throw err_('Choose a valid fleet type for ' + nm + '.', 'bad');
+  if (UNITS.indexOf(v.unit) < 0) v.unit = UNITS[0];
+  v.op = LEGACY_OPS[v.op] || v.op;
   if (OPS.indexOf(v.op) < 0) v.op = 'Active';
-  DATE_KEYS.forEach(k => { if (v[k] && !validDate_(v[k])) throw err_('Enter a valid date for ' + k + ' on ' + v.reg + '.', 'bad'); });
-  if (v.rwIssue && v.rwExp && v.rwIssue > v.rwExp) throw err_('Roadworthy issue date must be on or before its expiry.', 'bad');
+  if (['Yes', 'No'].indexOf(v.inRegister) < 0) v.inRegister = '';
+  DATE_KEYS.forEach(k => { if (v[k] && !validDate_(v[k])) throw err_('Enter a valid date for ' + k + ' on ' + nm + '.', 'bad'); });
+  if (v.rwIssue && v.rwExp && v.rwIssue > v.rwExp) throw err_('Roadworthy issue date must be on or before its expiry (' + nm + ').', 'bad');
+  if (v.insIssue && v.insExp && v.insIssue > v.insExp) throw err_('Insurance start date must be on or before its expiry (' + nm + ').', 'bad');
   return v;
 }
+function name_(v) { return [v.fleetNo, v.reg].filter(String).join(' · '); }
 function cleanLabel_(s) { return String(s || '').replace(/[^\w .,()\-]/g, '').slice(0, 40); }
 
 /* ---------------- daily email ---------------- */
@@ -453,28 +494,35 @@ function sendExpiryDigest() {
   if (!to) return;
   const today = Utilities.formatDate(new Date(), 'UTC', 'yyyy-MM-dd');
   const items = [];
-  rows_(sheet_(VEH_SHEET), COLS).map(fromRow_).filter(v => !v.archived).forEach(v => {
-    [['Roadworthy', v.rwExp], ['Insurance', v.insExp]].forEach(d => {
-      const left = d[1] ? Math.round((Date.parse(d[1] + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 864e5) : null;
-      if (left === null || left <= WINDOW_DAYS) items.push({ v: v, doc: d[0], date: d[1], left: left });
+  rows_(sheet_(VEH_SHEET), COLS).map(fromRow_)
+    .filter(v => !v.archived && v.op !== 'Retired' && (v.reg || v.rwExp || v.insExp))   // road-registered assets only
+    .forEach(v => {
+      [['Roadworthy', v.rwExp], ['Insurance', v.insExp]].forEach(d => {
+        const left = d[1] ? Math.round((Date.parse(d[1] + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 864e5) : null;
+        if (left === null || left <= WINDOW_DAYS) items.push({ v: v, doc: d[0], date: d[1], left: left });
+      });
     });
-  });
   if (!items.length) return;
   items.sort((a, b) => (a.left === null ? -1e6 : a.left) - (b.left === null ? -1e6 : b.left));
-  const bad = items.filter(i => i.left === null || i.left < 0).length;
+  const red = items.filter(i => i.left === null || i.left <= RED_DAYS);
+  const amber = items.filter(i => i.left !== null && i.left > RED_DAYS);
   const td = 'padding:6px 10px;border-bottom:1px solid #ddd';
-  const rowsHtml = items.map(i => {
-    const when = i.left === null ? 'Not recorded' : i.left < 0 ? (-i.left) + ' days overdue' : i.left === 0 ? 'Expires today' : i.left + ' days left';
-    const col = i.left === null ? '#5a4f9a' : i.left < 0 ? '#b3261e' : '#a45a00';
-    return '<tr><td style="' + td + '"><b>' + esc_(i.v.reg) + '</b> ' + esc_(i.v.fleetNo) + '</td><td style="' + td + '">' + esc_(i.v.site) +
-      '</td><td style="' + td + '">' + i.doc + '</td><td style="' + td + '">' + (i.date || '—') + '</td><td style="' + td + ';color:' + col + ';font-weight:600">' + when + '</td></tr>';
-  }).join('');
+  const table = list => '<table style="border-collapse:collapse;width:100%"><tr style="background:#eef1f6"><th align="left" style="padding:6px 10px">Asset</th><th align="left" style="padding:6px 10px">Unit / site</th><th align="left" style="padding:6px 10px">Document</th><th align="left" style="padding:6px 10px">Expiry</th><th align="left" style="padding:6px 10px">Status</th></tr>' +
+    list.map(i => {
+      const when = i.left === null ? 'Not recorded' : i.left < 0 ? (-i.left) + ' days overdue' : i.left === 0 ? 'Expires today' : i.left + ' days left';
+      const col = i.left === null ? '#5a4f9a' : i.left <= RED_DAYS ? '#b3261e' : '#a45a00';
+      return '<tr><td style="' + td + '"><b>' + esc_(i.v.fleetNo || '—') + '</b> ' + esc_(i.v.reg) + '<br><span style="color:#666">' + esc_(TYPES[i.v.group] || i.v.group) + '</span></td><td style="' + td + '">' +
+        esc_(i.v.unit) + '<br><span style="color:#666">' + esc_(i.v.site) + '</span></td><td style="' + td + '">' + i.doc + '</td><td style="' + td + '">' + (i.date || '—') +
+        '</td><td style="' + td + ';color:' + col + ';font-weight:600">' + when + '</td></tr>';
+    }).join('') + '</table>';
+  const overdue = red.filter(i => i.left === null || i.left < 0).length;
   MailApp.sendEmail({
     to: to,
-    subject: 'Rabotec fleet: ' + (bad ? bad + ' not road-legal, ' : '') + items.length + ' document' + (items.length === 1 ? '' : 's') + ' need attention',
-    htmlBody: mailWrap_('<p>Documents expired, missing or due within ' + WINDOW_DAYS + ' days as of ' + today + ' (GMT). Vehicles with an expired or missing document must not be dispatched.</p>' +
-      '<table style="border-collapse:collapse"><tr style="background:#eef1f6"><th align="left" style="padding:6px 10px">Vehicle</th><th align="left" style="padding:6px 10px">Site</th><th align="left" style="padding:6px 10px">Document</th><th align="left" style="padding:6px 10px">Expiry</th><th align="left" style="padding:6px 10px">Status</th></tr>' +
-      rowsHtml + '</table><p><a href="' + esc_(SETTINGS.APP_URL) + '">Open the Rabotec DVLA &amp; Insurance Register</a></p>'),
+    subject: 'Rabotec fleet: ' + red.length + ' red flag' + (red.length === 1 ? '' : 's') + (overdue ? ' (' + overdue + ' expired or missing)' : '') + ', ' + amber.length + ' due within ' + WINDOW_DAYS + ' days',
+    htmlBody: mailWrap_('<p>Status as of ' + today + ' (GMT). Assets with an expired or missing document must not be dispatched on public roads.</p>' +
+      (red.length ? '<h3 style="color:#b3261e;margin:18px 0 6px">Red flags: expired, missing or expiring within ' + RED_DAYS + ' days (' + red.length + ')</h3>' + table(red) : '') +
+      (amber.length ? '<h3 style="color:#a45a00;margin:18px 0 6px">Due in ' + (RED_DAYS + 1) + ' to ' + WINDOW_DAYS + ' days (' + amber.length + ')</h3>' + table(amber) : '') +
+      '<p style="margin-top:16px"><a href="' + esc_(SETTINGS.APP_URL) + '">Open the Rabotec DVLA &amp; Insurance Register</a></p>'),
   });
 }
 
@@ -500,6 +548,62 @@ function setup() {
   if (owner) findUser_(owner);
   secret_();
   return 'Setup complete: Vehicles, Activity and Users tabs are ready.';
+}
+
+/**
+ * One-time import of the old DVLA / insurance trackers and the asset register (Jul-Aug 2026).
+ * The records are pasted temporarily at the bottom of this file as SEED_GZ_B64 (gzipped JSON,
+ * one object per asset with a "history" list of what each source said), imported with
+ * runImport(), then removed again. Refuses to run if assets already exist.
+ */
+function runImport() {
+  if (typeof SEED_GZ_B64 === 'undefined') throw new Error('No seed data in this file.');
+  const blob = Utilities.newBlob(Utilities.base64Decode(SEED_GZ_B64), 'application/x-gzip');
+  return importHistory_(JSON.parse(Utilities.ungzip(blob).getDataAsString('UTF-8')));
+}
+function importHistory_(records, force) {
+  return withLock_(() => {
+    const vs = sheet_(VEH_SHEET), as = sheet_(ACT_SHEET);
+    const existing = rows_(vs, COLS);
+    if (existing.length && !force) throw new Error('The register already has ' + existing.length + ' assets. Import stopped so nothing is duplicated.');
+    const now = new Date().toISOString();
+    const by = 'Historical import';
+    const seen = {};
+    existing.forEach(r => { if (r.reg) seen['r' + regKey_(r.reg)] = 1; if (r.fleetNo) seen['f' + regKey_(r.fleetNo)] = 1; });
+    const rows = [], acts = [], skipped = [];
+    records.forEach(o => {
+      let v;
+      try { v = sanitize_(Object.assign({}, o, { archived: String(o.archived).toUpperCase() === 'TRUE' })); }
+      catch (e) { skipped.push((o.fleetNo || o.reg) + ': ' + e.message); return; }
+      if ((v.reg && seen['r' + regKey_(v.reg)]) || (v.fleetNo && seen['f' + regKey_(v.fleetNo)])) { skipped.push(name_(v) + ': already on the register'); return; }
+      if (v.reg) seen['r' + regKey_(v.reg)] = 1;
+      if (v.fleetNo) seen['f' + regKey_(v.fleetNo)] = 1;
+      const row = Object.assign({}, v, { id: Utilities.getUuid(), rev: 1, createdAt: now, updatedAt: now, updatedBy: by });
+      rows.push(toRow_(row));
+      let hist = o.history || [];
+      if (typeof hist === 'string') { try { hist = JSON.parse(hist); } catch (e) { hist = []; } }
+      hist.forEach(h => {
+        const changes = (h.c || []).map(c => ({ f: c[0] === 'status' ? 'sourceStatus' : c[0], from: '', to: String(c[1]) }));
+        acts.push([sourceDate_(h.s) || now, row.id, name_(row), 'Imported from ' + String(h.s).slice(0, 80), by, JSON.stringify(changes), '']);
+      });
+      acts.push([now, row.id, name_(row), 'Added to register from historical records', by,
+        JSON.stringify(v.notes ? [{ f: 'notes', from: '', to: v.notes }] : []), '']);
+    });
+    if (rows.length) vs.getRange(vs.getLastRow() + 1, 1, rows.length, COLS.length).setValues(rows);
+    acts.sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+    if (acts.length) as.getRange(as.getLastRow() + 1, 1, acts.length, ACT_COLS.length).setValues(acts.map(r => r.map(safeCell_)));
+    const msg = 'Imported ' + rows.length + ' assets and ' + acts.length + ' history entries.' + (skipped.length ? ' Skipped ' + skipped.length + ': ' + skipped.join('; ') : '');
+    Logger.log(msg);
+    return msg;
+  });
+}
+/** "Mining roadworthy tracker (23 Jul 2026)" -> 2026-07-23T00:00:00.000Z */
+function sourceDate_(s) {
+  const m = /\((\d{1,2}) (\w{3})\w* (\d{4})\)/.exec(String(s || ''));
+  if (!m) return '';
+  const mon = 'JanFebMarAprMayJunJulAugSepOctNovDec'.indexOf(m[2].slice(0, 1).toUpperCase() + m[2].slice(1, 3).toLowerCase()) / 3;
+  if (mon < 0 || mon % 1) return '';
+  return new Date(Date.UTC(Number(m[3]), mon, Number(m[1]))).toISOString();
 }
 
 /* ---------------- helpers ---------------- */
