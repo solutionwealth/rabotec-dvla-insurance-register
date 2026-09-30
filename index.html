@@ -497,16 +497,32 @@ const state = {
 };
 
 /* ───────── backend (Google Apps Script) ───────── */
+function newRid(){ const a=new Uint8Array(16); (crypto.getRandomValues?crypto.getRandomValues(a):a.forEach((_,i)=>a[i]=Math.random()*256|0)); return Array.from(a,b=>b.toString(16).padStart(2,"0")).join(""); }
+/* Google sometimes runs a request but fails to deliver the reply (an HTML error page instead of JSON).
+   Each call carries a request ID; retries reuse it, so the server returns the stored answer rather than repeating the change. */
 async function api(action, payload){
   if(!API_READY) throw new Error("The app isn't connected to its Google Sheet yet. Set API_URL in index.html.");
   const s=state.session||{};
-  let res;
-  try{
-    res = await fetch(API_URL,{method:"POST",credentials:"omit",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,token:s.token,...(payload||{})}),redirect:"follow"});
-  }catch(e){ const err=new Error("Can't reach the register. Check the network connection and try again."); err.code="network"; throw err; }
-  let out; try{ out=await res.json(); }catch(e){ const err=new Error("The register sent back an unexpected reply. Check the Apps Script deployment."); err.code="network"; throw err; }
-  if(!out.ok){ const err=new Error(out.error||"Something went wrong."); err.code=out.code; if(out.code==="auth"&&state.session) signOut(true); throw err; }
-  return out;
+  const body=JSON.stringify({action,token:s.token,rid:newRid(),...(payload||{})});
+  const waits=[0,1500,3000,6000];
+  let lastErr=null;
+  for(let i=0;i<waits.length;i++){
+    if(waits[i]) await new Promise(r=>setTimeout(r,waits[i]));
+    let text="";
+    try{
+      const ctl=new AbortController(); const timer=setTimeout(()=>ctl.abort(),45000);
+      const res=await fetch(API_URL,{method:"POST",credentials:"omit",headers:{"Content-Type":"text/plain;charset=utf-8"},body,redirect:"follow",signal:ctl.signal});
+      clearTimeout(timer);
+      text=await res.text();
+    }catch(e){ lastErr="network"; continue; }
+    let out; try{ out=JSON.parse(text); }catch(e){ lastErr="reply"; continue; }
+    if(!out.ok){ const err=new Error(out.error||"Something went wrong."); err.code=out.code; if(out.code==="auth"&&state.session) signOut(true); throw err; }
+    return out;
+  }
+  const err=new Error(lastErr==="network"
+    ? "Can't reach the register. Check the network connection and try again."
+    : "Google didn't send back a reply after several tries. Refresh the page: your last change may already be saved.");
+  err.code="network"; throw err;
 }
 async function refresh(quiet){
   if(state.demo||!state.session) return;

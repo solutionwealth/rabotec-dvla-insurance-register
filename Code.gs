@@ -72,9 +72,9 @@ function doPost(e) {
   try {
     switch (req.action) {
       // ---- no sign-in needed ----
-      case 'requestCode': return json_(withLock_(() => requestCode_(req.email)));
-      case 'setPassword': return json_(withLock_(() => setPassword_(req.email, req.code, req.password, req.name)));
-      case 'login':       return json_(withLock_(() => login_(req.email, req.password)));
+      case 'requestCode': return json_(once_(req.rid, () => requestCode_(req.email)));
+      case 'setPassword': return json_(once_(req.rid, () => setPassword_(req.email, req.code, req.password, req.name)));
+      case 'login':       return json_(once_(req.rid, () => login_(req.email, req.password)));
     }
     const me = auth_(req.token);
     switch (req.action) {
@@ -82,22 +82,22 @@ function doPost(e) {
       case 'list': return json_(Object.assign({ ok: true, user: publicUser_(me) }, list_()));
       case 'save':
         requireRole_(me, 'editor');
-        return json_(withLock_(() => save_(req.vehicle, req.rev, me, req.label)));
+        return json_(once_(req.rid, () => save_(req.vehicle, req.rev, me, req.label)));
       case 'saveMany':
         requireRole_(me, 'editor');
-        return json_(withLock_(() => saveMany_(req.items, me)));
+        return json_(once_(req.rid, () => saveMany_(req.items, me)));
       case 'users':
         requireRole_(me, 'admin');
         return json_({ ok: true, users: users_().map(publicUser_) });
       case 'userSave':
         requireRole_(me, 'admin');
-        return json_(withLock_(() => userSave_(me, req.email, req.name, req.role, req.invite)));
+        return json_(once_(req.rid, () => userSave_(me, req.email, req.name, req.role, req.invite)));
       case 'userStatus':
         requireRole_(me, 'admin');
-        return json_(withLock_(() => userStatus_(me, req.email, req.status)));
+        return json_(once_(req.rid, () => userStatus_(me, req.email, req.status)));
       case 'userRemove':
         requireRole_(me, 'admin');
-        return json_(withLock_(() => userRemove_(me, req.email)));
+        return json_(once_(req.rid, () => userRemove_(me, req.email)));
       default: throw err_('Unknown request.', 'bad');
     }
   } catch (err) {
@@ -354,6 +354,23 @@ function list_() {
 }
 
 /* ---------------- write ---------------- */
+/**
+ * Runs a change at most once per request ID. Google sometimes runs a request but fails to deliver
+ * the reply to the browser; the app then retries with the same ID and gets the stored answer back
+ * instead of the change being applied twice (or a one-time code being rejected as used).
+ */
+function once_(rid, fn) {
+  return withLock_(() => {
+    const id = String(rid || '');
+    const key = /^[A-Za-z0-9_-]{16,64}$/.test(id) ? 'rid:' + id : null;
+    const cache = key ? CacheService.getScriptCache() : null;
+    if (key) { const hit = cache.get(key); if (hit) return JSON.parse(hit); }
+    let out;
+    try { out = fn(); } catch (err) { out = { ok: false, error: err.message || String(err), code: err.code || 'error' }; }
+    if (key) { try { const s = JSON.stringify(out); if (s.length < 90000) cache.put(key, s, 600); } catch (e) {} }
+    return out;
+  });
+}
 function withLock_(fn) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(20000)) throw err_('The register is busy. Wait a few seconds and try again.', 'busy');
