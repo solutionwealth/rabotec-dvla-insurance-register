@@ -110,6 +110,9 @@ function doPost(e) {
       case 'userStatus':
         requireRole_(me, 'admin');
         return json_(once_(req.rid, () => userStatus_(me, req.email, req.status)));
+      case 'importHistory':
+        requireRole_(me, 'admin');
+        return json_(once_(req.rid, () => ({ ok: true, message: importHistory_(req.records, me) })));
       case 'userRemove':
         requireRole_(me, 'admin');
         return json_(once_(req.rid, () => userRemove_(me, req.email)));
@@ -551,21 +554,16 @@ function setup() {
 }
 
 /**
- * One-time import of the old DVLA / insurance trackers and the asset register (Jul-Aug 2026).
- * The records are pasted temporarily at the bottom of this file as SEED_GZ_B64 (gzipped JSON,
- * one object per asset with a "history" list of what each source said), imported with
- * runImport(), then removed again. Refuses to run if assets already exist.
+ * Import of the old DVLA / insurance trackers and the asset register (Jul-Aug 2026), sent by an admin
+ * from the Team page in batches. Each record is one asset with a "history" list of what each source said.
+ * Assets whose fleet no. or registration is already on the register are skipped, so a batch that is
+ * sent twice adds nothing.
  */
-function runImport() {
-  if (typeof SEED_GZ_B64 === 'undefined') throw new Error('No seed data in this file.');
-  const blob = Utilities.newBlob(Utilities.base64Decode(SEED_GZ_B64), 'application/x-gzip');
-  return importHistory_(JSON.parse(Utilities.ungzip(blob).getDataAsString('UTF-8')));
-}
-function importHistory_(records, force) {
-  return withLock_(() => {
+function importHistory_(records, me) {   // runs inside once_(), which holds the lock
+  {
     const vs = sheet_(VEH_SHEET), as = sheet_(ACT_SHEET);
+    if (!Array.isArray(records) || !records.length || records.length > 250) throw err_('Send between 1 and 250 records at a time.', 'bad');
     const existing = rows_(vs, COLS);
-    if (existing.length && !force) throw new Error('The register already has ' + existing.length + ' assets. Import stopped so nothing is duplicated.');
     const now = new Date().toISOString();
     const by = 'Historical import';
     const seen = {};
@@ -586,16 +584,14 @@ function importHistory_(records, force) {
         const changes = (h.c || []).map(c => ({ f: c[0] === 'status' ? 'sourceStatus' : c[0], from: '', to: String(c[1]) }));
         acts.push([sourceDate_(h.s) || now, row.id, name_(row), 'Imported from ' + String(h.s).slice(0, 80), by, JSON.stringify(changes), '']);
       });
-      acts.push([now, row.id, name_(row), 'Added to register from historical records', by,
-        JSON.stringify(v.notes ? [{ f: 'notes', from: '', to: v.notes }] : []), '']);
+      acts.push([now, row.id, name_(row), 'Added to register from historical records', me.name || me.email,
+        JSON.stringify(v.notes ? [{ f: 'notes', from: '', to: v.notes }] : []), me.email]);
     });
     if (rows.length) vs.getRange(vs.getLastRow() + 1, 1, rows.length, COLS.length).setValues(rows);
     acts.sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
     if (acts.length) as.getRange(as.getLastRow() + 1, 1, acts.length, ACT_COLS.length).setValues(acts.map(r => r.map(safeCell_)));
-    const msg = 'Imported ' + rows.length + ' assets and ' + acts.length + ' history entries.' + (skipped.length ? ' Skipped ' + skipped.length + ': ' + skipped.join('; ') : '');
-    Logger.log(msg);
-    return msg;
-  });
+    return 'Imported ' + rows.length + ' assets and ' + acts.length + ' history entries.' + (skipped.length ? ' Skipped ' + skipped.length + ': ' + skipped.join('; ') : '');
+  }
 }
 /** "Mining roadworthy tracker (23 Jul 2026)" -> 2026-07-23T00:00:00.000Z */
 function sourceDate_(s) {

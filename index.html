@@ -602,7 +602,7 @@ async function refresh(quiet){
   if(state.demo||!state.session) return;
   try{
     const r=await api("list");
-    state.vehicles=r.vehicles||[]; state.activity=r.activity||[]; applyUser(r.user); state.loaded=true; state.dbState="live"; state.syncedAt=new Date();
+    state.vehicles=r.vehicles||[]; state.activity=(r.activity||[]).slice().sort((a,b)=>a.at<b.at?1:a.at>b.at?-1:0); applyUser(r.user); state.loaded=true; state.dbState="live"; state.syncedAt=new Date();
     render();
   }catch(e){
     if(e.code==="auth") return;
@@ -1059,6 +1059,9 @@ function viewTeam(){
     </form>
     <div class="formerr" id="ta-err" hidden role="alert"></div>
     <p class="muted" style="margin:0;font-size:12.5px">Viewer: ${ROLE_HELP.viewer}. Editor: ${ROLE_HELP.editor}. Admin: ${ROLE_HELP.admin}.</p></section>`;
+  h+=`<section class="panel"><div class="panel-h"><div><h2>Import history file</h2><p>Loads assets and their history from a prepared file (.json), for example the old DVLA / insurance trackers. Assets already on the register are skipped, so loading a file twice adds nothing.</p></div></div>
+    <div class="toolbar"><label class="btn" for="hist-file" tabindex="0">${I.up}Choose history file</label><input id="hist-file" type="file" accept=".json,application/json" hidden><span id="hist-msg" class="muted" style="font-size:13px">${esc(state.histMsg||"")}</span></div>
+    <div id="hist-prog" hidden><div class="progress"><span style="width:0%"></span></div></div></section>`;
   if(!state.usersLoaded) return h+loadingBlock();
   const order={admin:0,editor:1,viewer:2};
   const list=[...state.users].sort((a,b)=>(b.owner-a.owner)||(order[a.role]-order[b.role])||String(a.name||a.email).localeCompare(b.name||b.email));
@@ -1075,6 +1078,32 @@ function viewTeam(){
   </tbody></table></div>
   <p class="muted" style="font-size:12.5px;margin:0">Switching someone off signs them out on every device straight away and keeps them on the list. Removing deletes their account; their past changes stay in the activity log.</p>`;
   return h+footer();
+}
+let histRecords=null;
+function handleHistFile(file){
+  const msg=$("#hist-msg"); histRecords=null; if(!file) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    let d; try{ d=JSON.parse(String(rd.result)); }catch(e){ msg.textContent="That file isn't a history file (it couldn't be read as JSON)."; return; }
+    if(!d||d.kind!=="rabotec-history-import"||!Array.isArray(d.records)||!d.records.length){ msg.textContent="That file isn't a Rabotec history file."; return; }
+    histRecords=d.records;
+    msg.innerHTML=`<b>${plural(d.records.length,"asset")}</b> ready${d.source?` from ${esc(d.source)}`:""}. <button class="btn sm primary" id="hist-go">${I.up}Import now</button>`;
+  };
+  rd.readAsText(file);
+}
+async function runHistoryImport(btn){
+  const recs=histRecords; if(!recs) return; btn.disabled=true; btn.textContent="Importing…";
+  const prog=$("#hist-prog"), bar=prog.querySelector("span"), msg=$("#hist-msg"); prog.hidden=false;
+  const per=150, out=[];
+  try{
+    for(let i=0;i<recs.length;i+=per){
+      const r=await api("importHistory",{records:recs.slice(i,i+per)}); out.push(r.message);
+      bar.style.width=(Math.min(recs.length,i+per)/recs.length*100)+"%";
+    }
+    const n=out.reduce((s,m)=>s+(+(/Imported (\d+) assets/.exec(m)||[0,0])[1]),0);
+    msg.textContent=state.histMsg=`Done: ${plural(n,"asset")} added.`+(out.some(m=>/Skipped/.test(m))?" Some were skipped: "+out.filter(m=>/Skipped/.test(m)).map(m=>m.replace(/^.*?Skipped/,"Skipped")).join(" ").slice(0,400):"");
+    histRecords=null; toast(`History import finished: ${plural(n,"asset")} added`); refresh(true);
+  }catch(e){ msg.textContent=e.message+" Choose the file again to finish: assets already added will be skipped."; }
 }
 async function teamAction(fn, okMsg){
   try{ const r=await fn(); if(okMsg) toast(okMsg(r)); await loadUsers(); }
@@ -1109,7 +1138,7 @@ async function loadHistory(id){
 function historyOf(v){
   if(state.demo) return activityList().filter(e=>e.vehicleId===v.id);
   const h=state.hist[v.id];
-  if(Array.isArray(h)){ const recent=state.activity.filter(e=>e.vehicleId===v.id&&!h.some(x=>x.at===e.at&&x.action===e.action)); return [...recent,...h]; }
+  if(Array.isArray(h)){ h.sort((a,b)=>a.at<b.at?1:a.at>b.at?-1:0); const recent=state.activity.filter(e=>e.vehicleId===v.id&&!h.some(x=>x.at===e.at&&x.action===e.action)); return [...recent,...h]; }
   return state.activity.filter(e=>e.vehicleId===v.id);
 }
 function openDetail(id, refresh){
@@ -1628,6 +1657,7 @@ async function runReport(btn, fn){
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-open],a"); if(!t) return;
   if(t.hasAttribute("data-close")){ t.closest("dialog").close(); return; }
+  if(t.id==="hist-go"){ runHistoryImport(t); return; }
   if(t.dataset.go){ const f={}; ["cat","group","status","unit"].forEach(k=>{ if(t.dataset[k]) f[k]=t.dataset[k]; }); closeAll(); go(t.dataset.go,f); return; }
   if(t.dataset.open){ openDetail(t.dataset.open); return; }
   if(t.dataset.edit){ openEdit(t.dataset.edit); return; }
@@ -1668,6 +1698,7 @@ document.addEventListener("input",e=>{ if(e.target.id==="q"){ state.f.q=e.target
 document.addEventListener("change",e=>{
   const id=e.target.id||"";
   if(e.target.dataset&&e.target.dataset.roleFor){ const em=e.target.dataset.roleFor, role=e.target.value; teamAction(()=>api("userSave",{email:em,role,invite:false}), ()=>`${em} is now ${role==="admin"?"an admin":"a"+(role==="editor"?"n editor":" viewer")}.`); return; }
+  if(id==="hist-file"){ handleHistFile(e.target.files[0]); return; }
   if(id==="r-retired"){ state.r.retired=e.target.checked; render(); return; }
   const m=/^(f|r)-(unit|cat|group|site|op|status)$/.exec(id);
   if(m){ const f=m[1]==="f"?state.f:state.r; f[m[2]]=e.target.value; if(m[2]==="cat"&&f.group&&catOf(f.group)!==f.cat&&f.cat) f.group=""; state.limit=150; render(); }
