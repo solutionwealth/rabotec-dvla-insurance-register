@@ -1,0 +1,1108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#15282a">
+<title>Rabotec Fleet Safety</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23f2b51d'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='15' text-anchor='middle' fill='%231b1b12'%3ERB%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: fixed left rail (desktop) / top tab strip (phone) + working canvas; summary before detail on every view. */
+:root{
+  --bg:#f3f4f1;           /* ground: pale overburden grey, slight green bias */
+  --surface:#ffffff;
+  --surface-2:#eceee9;
+  --line:#d9ddd5;
+  --ink:#172224;          /* deep slate */
+  --ink-2:#4b5a5b;
+  --ink-3:#7a8786;
+  --accent:#0e6b66;       /* pit-water teal */
+  --accent-ink:#ffffff;
+  --accent-soft:#dcecea;
+  --rail:#15282a;
+  --rail-ink:#dfe8e6;
+  --rail-dim:#8fa5a3;
+  --hi:#f2b51d;           /* hi-vis yellow, used only for the brand mark and focus */
+  --ok:#1f7a45;  --ok-soft:#e1f1e6;
+  --due:#a45f00; --due-soft:#fbecd2;
+  --bad:#b3261e; --bad-soft:#f9e1de;
+  --miss:#5a4f9a;--miss-soft:#e9e6f6;
+  --shadow:0 1px 2px rgba(20,35,36,.06),0 6px 20px rgba(20,35,36,.06);
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1718;--surface:#162123;--surface-2:#1c2a2c;--line:#2a3b3d;
+  --ink:#e6eeec;--ink-2:#a9bab8;--ink-3:#7d908e;
+  --accent:#3fb3aa;--accent-ink:#06201e;--accent-soft:#16383a;
+  --rail:#0b1213;--rail-ink:#dfe8e6;--rail-dim:#7f9795;--hi:#f2b51d;
+  --ok:#5cc98a;--ok-soft:#173226;--due:#f0a93a;--due-soft:#3a2c14;
+  --bad:#ff7b70;--bad-soft:#3d1c1a;--miss:#a99cf0;--miss-soft:#28243f;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1718;--surface:#162123;--surface-2:#1c2a2c;--line:#2a3b3d;
+  --ink:#e6eeec;--ink-2:#a9bab8;--ink-3:#7d908e;
+  --accent:#3fb3aa;--accent-ink:#06201e;--accent-soft:#16383a;
+  --rail:#0b1213;--rail-ink:#dfe8e6;--rail-dim:#7f9795;--hi:#f2b51d;
+  --ok:#5cc98a;--ok-soft:#173226;--due:#f0a93a;--due-soft:#3a2c14;
+  --bad:#ff7b70;--bad-soft:#3d1c1a;--miss:#a99cf0;--miss-soft:#28243f;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--f-body);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--hi);outline-offset:2px;border-radius:4px}
+.num,td.n{font-variant-numeric:tabular-nums}
+h1,h2,h3{margin:0;text-wrap:balance}
+
+/* shell */
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100%}
+.rail{background:var(--rail);color:var(--rail-ink);padding:20px 14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:env(safe-area-inset-top,0px);height:100vh;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px}
+.brand-mark{width:36px;height:36px;border-radius:8px;background:var(--hi);color:#1b1b12;display:grid;place-items:center;font:700 17px/1 var(--f-display);letter-spacing:.02em}
+.brand b{display:block;font:700 19px/1 var(--f-display);letter-spacing:.04em;text-transform:uppercase}
+.brand small{display:block;color:var(--rail-dim);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav-label{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--rail-dim);padding:0 10px 6px}
+.nav button{all:unset;display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--rail-ink);cursor:pointer;font-weight:500}
+.nav button:hover{background:rgba(255,255,255,.06)}
+.nav button[aria-current="page"]{background:rgba(255,255,255,.1);box-shadow:inset 3px 0 0 var(--hi)}
+.nav button:focus-visible{outline:3px solid var(--hi)}
+.nav svg{width:18px;height:18px;flex:none;opacity:.9}
+.nav .count{margin-left:auto;font:600 12px/1 var(--f-mono);background:var(--bad);color:#fff;border-radius:99px;padding:3px 7px}
+.nav .code{font:600 12px/1 var(--f-mono);width:30px;color:var(--rail-dim)}
+.nav .qty{margin-left:auto;font:500 12px/1 var(--f-mono);color:var(--rail-dim)}
+.rail-foot{margin-top:auto;font-size:12px;color:var(--rail-dim);padding:0 8px;display:flex;flex-direction:column;gap:8px}
+.who{display:flex;align-items:center;gap:8px;color:var(--rail-ink)}
+.who img{width:26px;height:26px;border-radius:50%}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{display:none}
+.canvas{padding-block:26px 40px;padding-inline:clamp(16px,3vw,36px);display:flex;flex-direction:column;gap:22px;max-width:1320px;width:100%}
+
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px}
+.eyebrow{font:600 11px/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.head h1{font:700 clamp(30px,4vw,40px)/1 var(--f-display);letter-spacing:.01em;margin-top:8px;text-transform:uppercase}
+.head p{margin:6px 0 0;color:var(--ink-2);max-width:62ch}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+
+.btn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;border:1px solid var(--line);background:var(--surface);padding:8px 13px;font-weight:500;line-height:1.2;white-space:nowrap}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad)}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn svg{width:16px;height:16px}
+
+.banner{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;border-radius:var(--r);padding:10px 14px;border:1px solid var(--line);background:var(--surface);font-size:13.5px}
+.banner.demo{background:var(--miss-soft);border-color:transparent}
+.banner.warn{background:var(--due-soft);border-color:transparent}
+.banner.err{background:var(--bad-soft);border-color:transparent}
+.banner .grow{flex:1 1 240px;min-width:0}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:6px;box-shadow:0 0 0 3px var(--ok-soft)}
+
+/* status chips */
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:3px 10px 3px 8px;font-size:12.5px;font-weight:600;white-space:nowrap;line-height:1.3}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.s-valid{color:var(--ok);background:var(--ok-soft)}
+.s-due{color:var(--due);background:var(--due-soft)}
+.s-expired{color:var(--bad);background:var(--bad-soft)}
+.s-missing{color:var(--miss);background:var(--miss-soft)}
+.chip.op{color:var(--ink-2);background:var(--surface-2)}
+.chip.op.grounded{color:var(--bad);background:transparent;border:1px solid currentColor}
+.chip.op.maint{color:var(--due);background:transparent;border:1px solid currentColor}
+.chip.op::before{display:none}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{all:unset;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 16px 14px;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden}
+.kpi:hover{border-color:var(--ink-3)}
+.kpi:focus-visible{outline:3px solid var(--hi)}
+.kpi .lbl{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.kpi .val{font:700 44px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:12.5px;color:var(--ink-3)}
+.kpi::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--k,var(--line))}
+.kpi.ok{--k:var(--ok)}.kpi.due{--k:var(--due)}.kpi.bad{--k:var(--bad)}
+
+.grid2{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.panel-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.panel-h h2{font:600 19px/1.1 var(--f-display);letter-spacing:.03em;text-transform:uppercase}
+.panel-h p{margin:3px 0 0;color:var(--ink-3);font-size:12.5px}
+.link{all:unset;cursor:pointer;color:var(--accent);font-weight:600;font-size:13px}
+.link:hover{text-decoration:underline}
+.link:focus-visible{outline:3px solid var(--hi)}
+
+/* chart */
+.chart .cw{overflow-x:auto}.chart svg{width:100%;min-width:520px;height:auto;display:block}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+/* dispatch list */
+.stoplist{display:flex;flex-direction:column}
+.stop{all:unset;cursor:pointer;display:grid;grid-template-columns:86px minmax(0,1fr);gap:12px;align-items:center;padding:10px 4px;border-top:1px solid var(--line)}
+.stop:first-child{border-top:0}
+.stop:hover{background:var(--surface-2)}
+.stop:focus-visible{outline:3px solid var(--hi)}
+.plate{font:700 18px/1 var(--f-display);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.fleetno{font:500 12px/1 var(--f-mono);color:var(--ink-3)}
+.stop .why{font-size:12.5px;color:var(--ink-2)}
+.empty-mini{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:16px;border-radius:8px;background:var(--ok-soft);color:var(--ok)}
+.empty-mini b{font-weight:600}
+.empty-mini span{color:var(--ink-2);font-size:13px}
+
+/* groups */
+.groups{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.group{all:unset;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.group:hover{border-color:var(--ink-3)}
+.group:focus-visible{outline:3px solid var(--hi)}
+.group .top{display:flex;justify-content:space-between;align-items:baseline}
+.group .code{font:600 12px/1 var(--f-mono);color:var(--accent);background:var(--accent-soft);padding:4px 6px;border-radius:5px}
+.group .n{font:700 34px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.group h3{font-size:13.5px;font-weight:600}
+.stack{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--surface-2)}
+.stack span{display:block;height:100%}
+.group small{color:var(--ink-3);font-size:12px}
+
+.sites{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.site{background:var(--surface-2);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.site b{font:600 16px/1.1 var(--f-display);letter-spacing:.04em;text-transform:uppercase}
+.site span{font-size:12.5px;color:var(--ink-2)}
+
+/* register */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.search{flex:1 1 240px;display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:0 10px;min-width:0}
+.search input{border:0;background:transparent;padding:9px 0;flex:1;min-width:0;outline:none}
+.search svg{width:16px;height:16px;color:var(--ink-3);flex:none}
+select.f{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;max-width:100%}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:8px 12px;font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.summary-line{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--ink-2)}
+.summary-line b{color:var(--ink)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:880px}
+th{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--surface-2);white-space:nowrap}
+th button{all:unset;cursor:pointer}
+th button:focus-visible{outline:3px solid var(--hi)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:0}
+.docd{display:flex;flex-direction:column;gap:2px}
+.docd .d{font-variant-numeric:tabular-nums;font-weight:500}
+.docd small{font-size:12px}
+.t-valid{color:var(--ok)}.t-due{color:var(--due)}.t-expired{color:var(--bad)}.t-missing{color:var(--miss)}
+.muted{color:var(--ink-3)}
+.cards{display:none;flex-direction:column;gap:10px}
+.vcard{all:unset;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+.vcard:focus-visible{outline:3px solid var(--hi)}
+.vcard .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.vcard dl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0}
+.vcard dt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.vcard dd{margin:2px 0 0}
+
+/* renewals */
+.lane{display:flex;flex-direction:column;gap:8px}
+.lane-h{display:flex;align-items:baseline;gap:10px}
+.lane-h h2{font:600 18px/1 var(--f-display);letter-spacing:.04em;text-transform:uppercase}
+.lane-h .num{color:var(--ink-3);font-family:var(--f-mono);font-size:13px}
+.ritem{display:grid;grid-template-columns:4px minmax(150px,1.2fr) minmax(160px,1fr) minmax(120px,.8fr) auto;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px 12px 0;overflow:hidden}
+.ritem .bar{align-self:stretch;margin:-12px 0;background:var(--c)}
+.ritem .who{color:var(--ink-2);font-size:12.5px}
+.ritem .doc b{display:block;font-weight:600}
+.ritem .when{font:600 15px/1.2 var(--f-mono);color:var(--c)}
+.ritem .when small{display:block;font:400 12px/1.3 var(--f-body);color:var(--ink-3)}
+.ritem .btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+
+/* activity */
+.feed{display:flex;flex-direction:column}
+.ev{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.ev:first-child{border-top:0}
+.ev .ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.ev .ic svg{width:15px;height:15px}
+.ev h3{font-size:14px;font-weight:600}
+.ev h3 button{all:unset;cursor:pointer;font:700 15px/1 var(--f-display);letter-spacing:.05em;text-transform:uppercase}
+.ev h3 button:hover{text-decoration:underline}
+.ev ul{margin:4px 0 0;padding:0;list-style:none;font-size:13px;color:var(--ink-2)}
+.ev ul li{overflow-wrap:anywhere}
+.ev del{color:var(--ink-3)}
+.ev ins{text-decoration:none;color:var(--ink)}
+.ev .meta{font-size:12px;color:var(--ink-3);margin-top:4px}
+
+/* empty */
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:48px 16px;background:var(--surface);border:1px dashed var(--line);border-radius:var(--r)}
+.empty h3{font:700 24px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.03em}
+.empty p{margin:0;color:var(--ink-2);max-width:52ch}
+.empty .actions{justify-content:center}
+.skel{height:14px;border-radius:6px;background:linear-gradient(90deg,var(--surface-2),var(--line),var(--surface-2));background-size:200% 100%;animation:sh 1.2s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+
+/* dialogs */
+dialog{border:0;padding:0;border-radius:14px;background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(720px,calc(100vw - 24px));max-height:calc(100vh - 32px)}
+dialog::backdrop{background:rgba(10,20,20,.5)}
+dialog.drawer{margin:0 0 0 auto;height:100vh;max-height:100vh;border-radius:14px 0 0 14px;width:min(560px,100vw)}
+.dlg{display:flex;flex-direction:column;max-height:inherit;height:100%}
+.dlg-h{padding:18px 20px 12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid var(--line)}
+.dlg-h h2{font:700 24px/1.05 var(--f-display);text-transform:uppercase;letter-spacing:.03em}
+.dlg-h p{margin:4px 0 0;color:var(--ink-2);font-size:13px}
+.dlg-b{padding:18px 20px;overflow:auto;display:flex;flex-direction:column;gap:16px}
+.dlg-f{padding:12px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;align-items:center}
+.dlg-f .grow{flex:1;min-width:0;font-size:12.5px;color:var(--ink-3)}
+.x{all:unset;cursor:pointer;width:32px;height:32px;display:grid;place-items:center;border-radius:8px;color:var(--ink-2);flex:none}
+.x:hover{background:var(--surface-2)}
+.x:focus-visible{outline:3px solid var(--hi)}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+.form .full{grid-column:1/-1}
+.fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fld label{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.fld input,.fld select,.fld textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:9px 10px;width:100%;min-width:0}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--accent);outline:2px solid var(--accent-soft)}
+.fld small{color:var(--ink-3);font-size:12px}
+.fld .err{color:var(--bad);font-size:12px}
+.sect{grid-column:1/-1;display:flex;align-items:center;gap:8px;font:600 15px/1 var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);padding-top:6px;border-top:1px solid var(--line);margin-top:4px;padding-block:12px 0}
+.formerr{background:var(--bad-soft);color:var(--bad);border-radius:8px;padding:10px 12px;font-size:13.5px}
+
+/* detail */
+.dtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.discs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.disc{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:14px;align-items:center;min-width:0}
+.sticker{width:74px;height:74px;border-radius:50%;flex:none;display:grid;place-items:center;text-align:center;border:3px solid var(--c);color:var(--c);background:var(--cs)}
+.sticker b{display:block;font:700 22px/1 var(--f-display);letter-spacing:.04em}
+.sticker small{display:block;font:600 12px/1 var(--f-mono);margin-top:2px}
+.disc .info{min-width:0;display:flex;flex-direction:column;gap:2px}
+.disc .info b{font-weight:600}
+.disc .info span{font-size:12.5px;color:var(--ink-2);overflow-wrap:anywhere}
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;margin:0}
+.kv dt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.kv dd{margin:2px 0 0;overflow-wrap:anywhere}
+.nodispatch{display:flex;gap:10px;align-items:center;background:var(--bad);color:#fff;border-radius:10px;padding:10px 14px;font-weight:600}
+.nodispatch svg{width:20px;height:20px;flex:none}
+
+/* import */
+.drop{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.mini{width:100%;border-collapse:collapse;min-width:560px;font-size:13px}
+.mini td,.mini th{padding:7px 8px}
+.progress{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.progress span{display:block;height:100%;background:var(--accent);transition:width .2s}
+
+.toast{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;box-shadow:var(--shadow);max-width:min(420px,calc(100vw - 32px));z-index:50;font-weight:500}
+.foot{font-size:12px;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:6px 18px;border-top:1px solid var(--line);padding-top:14px}
+
+@media (max-width:1180px){.groups{grid-template-columns:repeat(3,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail{display:none}
+  .topbar{display:flex;flex-direction:column;gap:10px;background:var(--rail);color:var(--rail-ink);padding:12px 16px 0;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+  .topbar .brand{padding:0}
+  .tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+  .tabs button{all:unset;cursor:pointer;padding:10px 12px;font-weight:500;color:var(--rail-dim);white-space:nowrap;border-bottom:3px solid transparent}
+  .tabs button[aria-current="page"]{color:var(--rail-ink);border-color:var(--hi)}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ritem{grid-template-columns:4px minmax(0,1fr) auto;padding-right:12px}
+  .ritem .doc{grid-column:2/-1}
+  .ritem .btns{grid-column:2/-1;justify-content:flex-start}
+}
+@media (max-width:720px){
+  .tablewrap{display:none}.cards{display:flex}
+  .groups{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sites{grid-template-columns:minmax(0,1fr)}
+  .form,.discs,.kv{grid-template-columns:minmax(0,1fr)}
+  .kpi .val{font-size:36px}
+  dialog.drawer{border-radius:0}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* sign-in */
+.app.locked{grid-template-columns:minmax(0,1fr)}
+.app.locked .rail,.app.locked .topbar{display:none}
+.signin{min-height:92vh;display:grid;place-items:center;padding-block:24px}
+.signin form{width:min(420px,100%);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
+.signin h1{font:700 34px/1 var(--f-display);text-transform:uppercase;letter-spacing:.02em}
+.signin p{margin:0;color:var(--ink-2)}
+.signin .remember{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--ink-2)}
+.stamp{font:500 11.5px/1.3 var(--f-mono);color:var(--ink-3)}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <aside class="rail" aria-label="Main navigation">
+    <div class="brand"><span class="brand-mark">RB</span><div><b>Rabotec</b><small>Fleet safety</small></div></div>
+    <nav class="nav" id="nav-main"></nav>
+    <nav class="nav" id="nav-groups"></nav>
+    <div class="rail-foot" id="rail-foot"></div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">RB</span><div><b>Rabotec</b><small>Fleet safety</small></div></div>
+      <nav class="tabs" id="tabs"></nav>
+    </header>
+    <main class="canvas" id="canvas">
+      <div class="head"><div><div class="eyebrow">Fleet compliance</div><h1>Fleet overview</h1><p>Loading the shared vehicle register…</p></div></div>
+      <div class="panel"><div class="skel" style="width:40%"></div><div class="skel"></div><div class="skel" style="width:70%"></div></div>
+    </main>
+  </div>
+</div>
+
+<dialog id="dlg-edit"></dialog>
+<dialog id="dlg-detail" class="drawer"></dialog>
+<dialog id="dlg-renew"></dialog>
+<dialog id="dlg-import"></dialog>
+<dialog id="dlg-help"></dialog>
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ═════════ SETTINGS ═════════
+   Paste the Web app URL from Apps Script (Deploy ▸ Manage deployments). It ends in /exec. */
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+/* ════════════════════════════ */
+const API_READY = /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(API_URL);
+const REFRESH_MS = 90000;
+
+/* ───────── constants ───────── */
+const GROUPS = [
+  {code:"LV",  name:"Light vehicles"},
+  {code:"DT",  name:"Dump trucks"},
+  {code:"ADT", name:"Articulated dump trucks"},
+  {code:"ST",  name:"Service trucks"},
+  {code:"LB",  name:"Lowbeds"},
+];
+const SITES = ["Abore Pit","Esaase Pit","Other"];
+const OPS = ["Active","Under maintenance","Grounded"];
+const WINDOW = 30;               // renewal window in days
+const FIELDS = {
+  reg:"Registration", fleetNo:"Fleet no.", group:"Group", site:"Site", op:"Operating status",
+  model:"Make / model", responsible:"Responsible person",
+  rwNo:"Roadworthy cert. no.", rwIssue:"Roadworthy issued", rwExp:"Roadworthy expiry",
+  insurer:"Insurer", policyNo:"Policy no.", insExp:"Insurance expiry", notes:"Notes", archived:"Register status"
+};
+const DATE_FIELDS = new Set(["rwIssue","rwExp","insExp"]);
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+/* ───────── icons ───────── */
+const I = {
+  grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>',
+  truck:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V6a1 1 0 0 1 1-1h10v12"/><path d="M14 9h4l3 4v4h-2"/><circle cx="7" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/><path d="M9 17.5h6"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg>',
+  up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V9m0 0 4 4m-4-4-4 4M5 4h14"/></svg>',
+  x:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  stop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.6 2h6.8L22 8.6v6.8L15.4 22H8.6L2 15.4V8.6z"/><path d="M12 8v5M12 16.5v.01"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  help:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/></svg>',
+};
+
+/* ───────── date helpers (Ghana = UTC) ───────── */
+const todayISO = () => new Date().toISOString().slice(0,10);
+const dayMs = 86400000;
+const toDay = iso => Date.parse(iso + "T00:00:00Z");
+function daysLeft(iso, ref){ if(!iso) return null; const n = toDay(iso); if(Number.isNaN(n)) return null; return Math.round((n - toDay(ref||state.today))/dayMs); }
+function docStatus(iso, ref){ const d = daysLeft(iso, ref); return d===null?"missing":d<0?"expired":d<=WINDOW?"due":"valid"; }
+function vehStatus(v, ref){ const s=[docStatus(v.rwExp,ref),docStatus(v.insExp,ref)]; return s.includes("expired")?"expired":s.includes("missing")?"missing":s.includes("due")?"due":"valid"; }
+const STATUS_LABEL = {valid:"Valid",due:"Due soon",expired:"Expired",missing:"Missing"};
+function fmtDate(iso){ if(!iso) return "Not recorded"; const [y,m,d]=iso.split("-"); return `${d} ${MONTHS[+m-1]} ${y}`; }
+function relText(iso){ const d=daysLeft(iso); if(d===null) return "No date recorded"; if(d<0) return `${-d} day${d===-1?"":"s"} overdue`; if(d===0) return "Expires today"; return `${d} day${d===1?"":"s"} left`; }
+function addDays(iso,n){ return new Date(toDay(iso)+n*dayMs).toISOString().slice(0,10); }
+function validISO(s){ if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false; const t=Date.parse(s+"T00:00:00Z"); return !Number.isNaN(t) && new Date(t).toISOString().slice(0,10)===s; }
+function parseAnyDate(raw){
+  const s=String(raw||"").trim(); if(!s) return "";
+  if(validISO(s)) return s;
+  let m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/);          // DD/MM/YYYY (Ghana)
+  if(m){ let y=+m[3]; if(y<100) y+=2000; const iso=`${y}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`; return validISO(iso)?iso:null; }
+  m = s.match(/^(\d{1,2})[\s\-]([A-Za-z]{3,})[\s\-,]*(\d{4})$/);            // 5 Mar 2027
+  if(m){ const mi=MONTHS.findIndex(x=>m[2].toLowerCase().startsWith(x.toLowerCase())); if(mi<0) return null; const iso=`${m[3]}-${String(mi+1).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`; return validISO(iso)?iso:null; }
+  return null;
+}
+
+/* ───────── misc helpers ───────── */
+const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const normReg = s => String(s||"").toUpperCase().replace(/\s+/g," ").trim();
+const regKey = s => normReg(s).replace(/[\s\-]/g,"");
+const $ = (sel, root=document) => root.querySelector(sel);
+const groupName = code => (GROUPS.find(g=>g.code===code)||{name:code||"—"}).name;
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,3600); }
+function csvCell(v){ let s=String(v??""); if(/^\s*[=+@\-]/.test(s)) s="'"+s; return '"'+s.replace(/"/g,'""')+'"'; }
+function parseCSV(text){
+  text = text.replace(/^﻿/,"");
+  const rows=[]; let row=[], f="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(f); f=""; }
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n') i++; row.push(f); rows.push(row); row=[]; f=""; }
+    else f+=c;
+  }
+  if(f!==""||row.length){ row.push(f); rows.push(row); }
+  return rows.filter(r=>r.some(x=>String(x).trim()!==""));
+}
+
+/* ───────── state ───────── */
+const state = {
+  today: todayISO(),
+  view: "overview",
+  vehicles: [],             // live records
+  loaded: false,
+  dbState: "connecting",    // signin | connecting | live | offline
+  activity: [],
+  session: null,            // {name, key, role}
+  syncedAt: null,
+  demo: false,
+  canWrite: false,
+  meId: null, me: null,
+  f: {q:"", group:"", site:"", status:"", archived:false},
+  sort: {key:"status", dir:1},
+  names: {},
+};
+
+/* ───────── backend (Google Apps Script) ───────── */
+async function api(action, payload){
+  if(!API_READY) throw new Error("The app isn't connected to its Google Sheet yet. Set API_URL in index.html.");
+  const s=state.session||{};
+  let res;
+  try{
+    res = await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,key:s.key,name:s.name,...(payload||{})}),redirect:"follow"});
+  }catch(e){ const err=new Error("Can't reach the register. Check the network connection and try again."); err.code="network"; throw err; }
+  let out; try{ out=await res.json(); }catch(e){ const err=new Error("The register sent back an unexpected reply. Check the Apps Script deployment."); err.code="network"; throw err; }
+  if(!out.ok){ const err=new Error(out.error||"Something went wrong."); err.code=out.code; if(out.code==="auth") signOut(true); throw err; }
+  return out;
+}
+async function refresh(quiet){
+  if(state.demo||!state.session) return;
+  try{
+    const r=await api("list");
+    state.vehicles=r.vehicles||[]; state.activity=r.activity||[]; state.session.role=r.role;
+    state.canWrite=r.role==="edit"; state.loaded=true; state.dbState="live"; state.syncedAt=new Date();
+    render();
+  }catch(e){
+    if(e.code==="auth") return;
+    state.loaded=true;
+    if(!quiet||!state.vehicles.length){ state.dbState="offline"; render(); }
+    if(!quiet) toast(e.message);
+  }
+}
+const store={
+  get(){ try{ return JSON.parse(localStorage.getItem("rabotec-fleet-session")||"null"); }catch(e){ return null; } },
+  set(v){ try{ v?localStorage.setItem("rabotec-fleet-session",JSON.stringify(v)):localStorage.removeItem("rabotec-fleet-session"); }catch(e){} },
+};
+function signOut(expired){
+  state.session=null; state.vehicles=[]; state.activity=[]; state.loaded=false; state.dbState="signin"; store.set(null);
+  closeAll(); render(); if(expired) toast("Your access code was not accepted. Sign in again.");
+}
+
+function data(){ return state.demo ? sampleFleet() : state.vehicles; }
+function active(){ return data().filter(v=>!v.archived); }
+
+/* ───────── sample fleet (preview only, never written) ───────── */
+let _sample=null, _sampleDay=null, _sampleAct=[];
+function activityList(){ if(state.demo){ sampleFleet(); return _sampleAct; } return state.activity; }
+function sampleFleet(){
+  if(_sample && _sampleDay===state.today) return _sample;
+  const t=state.today, d=n=>addDays(t,n);
+  const rows=[
+    ["GT 4821-22","LV-014","LV","Abore Pit","Active","Toyota Hilux 2.4",140,d(-340),210],
+    ["GT 7310-23","LV-021","LV","Esaase Pit","Active","Toyota Land Cruiser 79",12,d(-353),64],
+    ["GN 2204-21","LV-009","LV","Other","Active","Nissan Navara",-6,d(-371),95],
+    ["GT 5512-24","DT-103","DT","Abore Pit","Active","Sinotruk Howo 371",45,d(-320),27],
+    ["GT 5513-24","DT-104","DT","Abore Pit","Under maintenance","Sinotruk Howo 371",null,null,120],
+    ["GW 8811-23","DT-110","DT","Esaase Pit","Active","Shacman X3000",88,d(-277),3],
+    ["GT 1180-22","ADT-07","ADT","Esaase Pit","Active","Volvo A40G",200,d(-165),-2],
+    ["GT 1181-22","ADT-08","ADT","Abore Pit","Active","CAT 745",20,d(-345),160],
+    ["GR 3345-20","ST-02","ST","Other","Active","Isuzu FVR fuel bowser",62,d(-303),250],
+    ["GT 9022-21","ST-05","ST","Esaase Pit","Grounded","Hino 500 service truck",-40,d(-405),-12],
+    ["GT 6604-19","LB-01","LB","Other","Active","MAN TGX lowbed",175,d(-190),41],
+  ];
+  _sample = rows.map((r,i)=>({id:"sample-"+i, reg:r[0], fleetNo:r[1], group:r[2], site:r[3], op:r[4], model:r[5],
+    responsible:["Fleet supervisor","Workshop foreman","Transport officer"][i%3],
+    rwExp:r[6]===null?"":d(r[6]), rwIssue:r[7]||"", rwNo:r[6]===null?"":"RW-"+(48210+i*37),
+    insExp:d(r[8]), insurer:["Enterprise Insurance","SIC Insurance","Star Assurance"][i%3], policyNo:"POL/"+(2026)+"/"+(3300+i*11),
+    notes:"", archived:false, rev:1, updatedBy:"Sample"}));
+  _sampleAct=_sample.map((v,i)=>({at:new Date(Date.now()-(i+1)*36e5*20).toISOString(),vehicleId:v.id,reg:v.reg,by:"Sample fleet officer",action:"Vehicle added",changes:[]}));
+  _sampleDay=state.today; return _sample;
+}
+
+/* ───────── derived ───────── */
+function renewalItems(list){
+  return list.filter(v=>!v.archived).flatMap(v=>[["rw","Roadworthy certificate",v.rwExp],["ins","Insurance",v.insExp]].map(([k,label,date])=>({v,k,label,date,left:daysLeft(date),st:docStatus(date)})))
+    .filter(x=>x.st!=="valid").sort((a,b)=>(a.left??-1e6)-(b.left??-1e6));
+}
+function counts(list){
+  const c={total:list.length,valid:0,due:0,expired:0,missing:0};
+  list.forEach(v=>c[vehStatus(v)]++); return c;
+}
+function filtered(){
+  const {q,group,site,status,archived}=state.f; const qq=q.trim().toLowerCase();
+  const rank={expired:0,missing:1,due:2,valid:3};
+  let list=data().filter(v=>!!v.archived===archived && (!group||v.group===group) && (!site||v.site===site) && (!status||vehStatus(v)===status)
+    && (!qq || [v.reg,v.fleetNo,v.model,v.site,v.responsible,v.rwNo,v.policyNo,v.insurer].join(" ").toLowerCase().includes(qq)));
+  const {key,dir}=state.sort;
+  const val=v=> key==="status"? rank[vehStatus(v)]*1e7+(Math.min(daysLeft(v.rwExp)??-1e6,daysLeft(v.insExp)??-1e6)+5e6)
+    : key==="rwExp"||key==="insExp" ? (v[key]||"0000") : String(v[key]||"").toLowerCase();
+  list.sort((a,b)=>{const A=val(a),B=val(b); return (A<B?-1:A>B?1:0)*dir || String(a.reg).localeCompare(b.reg);});
+  return list;
+}
+
+/* ───────── navigation ───────── */
+const VIEWS = [
+  {id:"overview", label:"Overview", icon:I.grid},
+  {id:"register", label:"Vehicle register", icon:I.truck},
+  {id:"renewals", label:"Renewal queue", icon:I.clock},
+  {id:"activity", label:"Activity log", icon:I.hist},
+];
+function initials(n){ return String(n||"?").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("")||"?"; }
+function go(view, filters){
+  state.view=view;
+  state.f={q:"",group:"",site:"",status:"",archived:false, ...(filters||{})};
+  render(); window.scrollTo({top:0});
+}
+function renderNav(){
+  const due=renewalItems(data()).filter(x=>x.st!=="due").length;
+  const html=VIEWS.map(v=>`<button data-go="${v.id}" ${state.view===v.id?'aria-current="page"':""}>${v.icon}<span>${v.label}</span>${v.id==="renewals"&&due?`<span class="count">${due}</span>`:""}</button>`).join("");
+  $("#nav-main").innerHTML=`<div class="nav-label">Workspace</div>${html}`;
+  const act=active();
+  $("#nav-groups").innerHTML=`<div class="nav-label">Vehicle groups</div>`+GROUPS.map(g=>`<button data-go="register" data-group="${g.code}" ${state.view==="register"&&state.f.group===g.code?'aria-current="page"':""}><span class="code">${g.code}</span><span>${g.name}</span><span class="qty">${act.filter(v=>v.group===g.code).length}</span></button>`).join("");
+  $("#tabs").innerHTML=VIEWS.map(v=>`<button data-go="${v.id}" ${state.view===v.id?'aria-current="page"':""}>${v.label}${v.id==="renewals"&&due?` · ${due}`:""}</button>`).join("");
+  const live=state.dbState==="live";
+  $("#rail-foot").innerHTML=`${state.session?`<div class="who"><span class="brand-mark" style="width:26px;height:26px;font-size:12px;border-radius:50%">${esc(initials(state.session.name))}</span><span>${esc(state.session.name)}</span></div>`:""}
+    <div><span class="dot" style="${live?"":"background:var(--due);box-shadow:none"}"></span>${state.demo?"Sample fleet preview":live?(state.canWrite?"Live register · can edit":"Live register · view only"):state.dbState==="connecting"?"Connecting…":"Not connected"}</div>
+    ${state.syncedAt&&!state.demo?`<div>Updated ${state.syncedAt.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})} · <button class="link" data-act="refresh" style="color:var(--rail-dim)">Refresh</button></div>`:""}
+    <button class="link" data-act="help" style="color:var(--rail-dim)">How statuses work</button>
+    ${state.session?`<button class="link" data-act="signout" style="color:var(--rail-dim)">Sign out</button>`:""}`;
+}
+
+/* ───────── views ───────── */
+function header(eyebrow,title,sub,actions){
+  return `<div class="head"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${sub}</p></div><div class="actions">${actions||""}</div></div>`;
+}
+function writeActions(){
+  const canAdd = state.canWrite && !state.demo && state.dbState==="live";
+  return `${!state.demo&&state.session?`<button class="btn" data-act="refresh" aria-label="Refresh from the Google Sheet">${I.hist}Refresh</button>`:""}<button class="btn" data-act="export">${I.down}Export CSV</button>
+    ${canAdd?`<button class="btn" data-act="import">${I.up}Import CSV</button><button class="btn primary" data-act="add">${I.plus}Add vehicle</button>`:""}`;
+}
+function banners(){
+  let b="";
+  if(state.demo) b+=`<div class="banner demo"><span class="grow"><b>Sample fleet.</b> These are made-up vehicles to show how the register works. Nothing here is saved.</span><button class="btn sm" data-act="demo-off">Back to live register</button></div>`;
+  else if(state.dbState==="offline") b+=`<div class="banner warn"><span class="grow"><b>Can't reach the register right now.</b> ${state.vehicles.length?"You're seeing the last records loaded. ":""}Check the network connection and try again.</span><button class="btn sm" data-act="refresh">Try again</button></div>`;
+  else if(state.dbState==="live" && !state.canWrite) b+=`<div class="banner"><span class="grow"><b>View only.</b> You can see every record and export it. Ask the HSE office for the editing code to add or update vehicles.</span></div>`;
+  return b;
+}
+
+function viewOverview(){
+  const list=active(), c=counts(list), items=renewalItems(data());
+  const cur=list.filter(v=>{const a=daysLeft(v.rwExp),b=daysLeft(v.insExp);return a!==null&&b!==null&&a>=0&&b>=0;}).length;
+  const pct=list.length?Math.round(cur/list.length*100):0;
+  const stopList=list.filter(v=>["expired","missing"].includes(vehStatus(v))).sort((a,b)=>(a.op==="Active"?0:1)-(b.op==="Active"?0:1));
+  const activeStop=stopList.filter(v=>v.op==="Active").length;
+  let h=header("Fleet compliance","Fleet overview",
+    list.length?`${list.length} vehicles on the register · ${pct}% have both a current roadworthy certificate and insurance.`:"Roadworthy certificates and insurance for every Rabotec vehicle, in one shared register.",
+    writeActions())+banners();
+  if(!state.loaded && !state.demo) return h+loadingBlock();
+  if(!list.length) return h+emptyFleet();
+  h+=`<section class="kpis" aria-label="Fleet summary">
+    <button class="kpi" data-go="register"><span class="lbl">Vehicles</span><span class="val">${c.total}</span><span class="sub">${GROUPS.length} groups · ${SITES.length-1} pits</span></button>
+    <button class="kpi ok" data-go="register" data-status="valid"><span class="lbl">Clear to dispatch</span><span class="val">${c.valid+c.due}</span><span class="sub">${c.valid} valid · ${c.due} due within ${WINDOW} days</span></button>
+    <button class="kpi due" data-go="renewals"><span class="lbl">Due in ${WINDOW} days</span><span class="val">${items.filter(x=>x.st==="due").length}</span><span class="sub">documents to renew</span></button>
+    <button class="kpi bad" data-go="renewals"><span class="lbl">Not road-legal</span><span class="val">${c.expired+c.missing}</span><span class="sub">${c.expired} expired · ${c.missing} missing a record</span></button>
+  </section>`;
+  h+=`<section class="grid2">
+    <article class="panel chart"><div class="panel-h"><div><h2>Expiry horizon</h2><p>Documents expiring each week for the next 12 weeks, with anything already overdue</p></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Roadworthy</span><span><i style="background:var(--due)"></i>Insurance</span></div></div>
+      <div class="cw">${horizonChart(list)}</div></article>
+    <article class="panel"><div class="panel-h"><div><h2>Do not dispatch</h2><p>${activeStop?`${activeStop} still marked Active on the pits`:"Vehicles with an expired or unrecorded document"}</p></div>${stopList.length?`<button class="link" data-go="renewals">Renewal queue →</button>`:""}</div>
+      ${stopList.length?`<div class="stoplist">${stopList.slice(0,6).map(v=>{const bad=[["Roadworthy",v.rwExp],["Insurance",v.insExp]].filter(([,d])=>["expired","missing"].includes(docStatus(d))).map(([n,d])=>`${n} ${docStatus(d)==="missing"?"not recorded":relText(d)}`).join(" · ");
+        return `<button class="stop" data-open="${esc(v.id)}"><span class="chip s-${vehStatus(v)}">${STATUS_LABEL[vehStatus(v)]}</span><span><span class="plate">${esc(v.reg)}</span> <span class="fleetno">${esc(v.fleetNo)}</span><br><span class="why">${esc(bad)}</span> ${v.op!=="Active"?opChip(v.op):""}</span></button>`;}).join("")}</div>${stopList.length>6?`<button class="link" data-go="register" data-status="expired">See all ${stopList.length} →</button>`:""}`
+      :`<div class="empty-mini"><b>${I.check.replace("<svg",'<svg width="18" height="18"')} Every vehicle is road-legal</b><span>All active vehicles have a current roadworthy certificate and insurance on record.</span></div>`}
+    </article></section>`;
+  h+=`<section class="panel"><div class="panel-h"><div><h2>By vehicle group</h2><p>Bar shows the share of each group that is valid, due soon, expired or missing</p></div><button class="link" data-go="register">Open register →</button></div>
+    <div class="groups">${GROUPS.map(g=>{const gl=list.filter(v=>v.group===g.code),gc=counts(gl);return `<button class="group" data-go="register" data-group="${g.code}"><div class="top"><span class="code">${g.code}</span><span class="n">${gl.length}</span></div><h3>${g.name}</h3>${stackBar(gc)}<small>${gl.length?(gc.expired+gc.missing?`${gc.expired+gc.missing} not road-legal`:gc.due?`${gc.due} due soon`:"All documents valid"):"No vehicles yet"}</small></button>`;}).join("")}</div>
+    <div class="sites">${SITES.map(s=>{const sl=list.filter(v=>v.site===s),sc=counts(sl);return `<div class="site"><b>${esc(s)}</b><span class="num">${sl.length} vehicle${sl.length===1?"":"s"} · ${sc.expired+sc.missing} not road-legal · ${sl.filter(v=>v.op!=="Active").length} off the road</span></div>`;}).join("")}</div>
+  </section>`;
+  return h+footer();
+}
+function stackBar(c){ const t=c.total||1; return `<div class="stack" role="img" aria-label="${c.valid} valid, ${c.due} due soon, ${c.expired} expired, ${c.missing} missing">${[["valid","var(--ok)"],["due","var(--due)"],["expired","var(--bad)"],["missing","var(--miss)"]].map(([k,col])=>c[k]?`<span style="width:${c[k]/t*100}%;background:${col}"></span>`:"").join("")}</div>`; }
+function opChip(op){ return `<span class="chip op ${op==="Grounded"?"grounded":op==="Under maintenance"?"maint":""}">${esc(op||"Active")}</span>`; }
+
+function horizonChart(list){
+  const buckets=[{label:"Overdue",rw:0,ins:0}];
+  for(let w=0;w<12;w++){ const s=addDays(state.today,w*7); const [,m,d]=s.split("-"); buckets.push({label:`${+d} ${MONTHS[+m-1]}`,rw:0,ins:0}); }
+  list.forEach(v=>[["rw",v.rwExp],["ins",v.insExp]].forEach(([k,dt])=>{const l=daysLeft(dt); if(l===null) return; if(l<0) buckets[0][k]++; else if(l<84) buckets[1+Math.floor(l/7)][k]++;}));
+  const max=Math.max(1,...buckets.map(b=>b.rw+b.ins)); const nice=max<=4?4:Math.ceil(max/4)*4;
+  const W=640,H=230,L=34,R=8,T=12,B=40, cw=(W-L-R)/buckets.length, bw=Math.min(28,cw*.62), y=v=>T+(H-T-B)*(1-v/nice);
+  let g="";
+  for(let i=0;i<=4;i++){const v=nice/4*i; g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Mono,monospace">${v}</text>`;}
+  buckets.forEach((b,i)=>{
+    const x=L+cw*i+(cw-bw)/2, tot=b.rw+b.ins;
+    if(i===0&&tot) g+=`<rect x="${L+cw*i+2}" y="${T}" width="${cw-4}" height="${H-T-B}" fill="var(--bad-soft)" rx="4"/>`;
+    if(b.rw) g+=`<rect x="${x}" y="${y(b.rw)}" width="${bw}" height="${y(0)-y(b.rw)}" fill="var(--accent)" rx="2"><title>${b.label}: ${b.rw} roadworthy</title></rect>`;
+    if(b.ins) g+=`<rect x="${x}" y="${y(tot)}" width="${bw}" height="${y(b.rw)-y(tot)}" fill="var(--due)" rx="2"><title>${b.label}: ${b.ins} insurance</title></rect>`;
+    if(tot) g+=`<text x="${x+bw/2}" y="${y(tot)-5}" text-anchor="middle" font-size="11" font-weight="600" fill="${i===0?"var(--bad)":"var(--ink)"}" font-family="IBM Plex Mono,monospace">${tot}</text>`;
+    if(i===0||(i>1&&i%2===0)) g+=`<text x="${L+cw*i+cw/2}" y="${H-B+18}" text-anchor="middle" font-size="11" fill="${i===0?"var(--bad)":"var(--ink-3)"}" font-weight="${i===0?600:400}">${i===0?"Overdue":b.label}</text>`;
+  });
+  g+=`<text x="${L+cw*2}" y="${H-4}" font-size="10.5" fill="var(--ink-3)">Week starting →</text>`;
+  const total=buckets.reduce((s,b)=>s+b.rw+b.ins,0);
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Documents expiring per week over the next 12 weeks; ${total} in total including ${buckets[0].rw+buckets[0].ins} overdue">${g}</svg>`;
+}
+
+function loadingBlock(){ return `<div class="panel"><div class="skel" style="width:35%"></div><div class="skel"></div><div class="skel" style="width:65%"></div></div>`; }
+function emptyFleet(){
+  const can=state.canWrite&&state.dbState==="live";
+  return `<div class="empty">${I.truck.replace("<svg",'<svg width="42" height="42" style="color:var(--ink-3)"')}<h3>Build the fleet register</h3>
+    <p>${can?"Add vehicles one at a time, or import the CSV exported from the old tracker. Missing dates are flagged automatically so nothing slips through.":state.dbState==="live"?"No vehicles have been added yet. Records appear here as soon as an editor adds them.":"Once the shared register is available, vehicles will appear here."}</p>
+    <div class="actions">${can?`<button class="btn primary" data-act="add">${I.plus}Add first vehicle</button><button class="btn" data-act="import">${I.up}Import CSV</button>`:""}<button class="btn" data-act="demo-on">Preview with a sample fleet</button></div></div>`;
+}
+function footer(){ return `<div class="foot"><span>Dates in Ghana time (GMT)</span><span>Renewal window ${WINDOW} days</span><span>Statuses reflect recorded dates. Check the original documents during inspections.</span></div>`; }
+
+function viewRegister(){
+  const f=state.f;
+  let h=header("Fleet compliance", f.group?groupName(f.group):"Vehicle register", "Every vehicle with its roadworthy certificate and insurance. Select a row for details and history.", writeActions())+banners();
+  if(!state.loaded&&!state.demo) return h+loadingBlock();
+  if(!data().length) return h+emptyFleet();
+  h+=`<div class="toolbar">
+    <label class="search">${I.search}<input id="q" type="search" placeholder="Search registration, fleet no., model, person…" value="${esc(f.q)}" aria-label="Search vehicles"></label>
+    <select class="f" id="f-group" aria-label="Vehicle group"><option value="">All groups</option>${GROUPS.map(g=>`<option value="${g.code}" ${f.group===g.code?"selected":""}>${g.code} · ${g.name}</option>`).join("")}</select>
+    <select class="f" id="f-site" aria-label="Site"><option value="">All sites</option>${SITES.map(s=>`<option ${f.site===s?"selected":""}>${s}</option>`).join("")}</select>
+    <select class="f" id="f-status" aria-label="Document status"><option value="">All statuses</option>${Object.entries(STATUS_LABEL).map(([k,l])=>`<option value="${k}" ${f.status===k?"selected":""}>${l}</option>`).join("")}</select>
+    <div class="seg" role="group" aria-label="Register"><button data-arch="0" aria-pressed="${!f.archived}">Active</button><button data-arch="1" aria-pressed="${f.archived}">Archived</button></div>
+  </div><div id="reg-results"></div>`;
+  return h+footer();
+}
+function registerResults(){
+  const list=filtered(), s=state.sort;
+  const arrow=k=>s.key===k?(s.dir>0?" ↑":" ↓"):"";
+  const th=(k,l)=>`<th aria-sort="${s.key===k?(s.dir>0?"ascending":"descending"):"none"}"><button data-sort="${k}">${l}${arrow(k)}</button></th>`;
+  const docCell=d=>{const st=docStatus(d);return `<div class="docd"><span class="d">${fmtDate(d)}</span><small class="t-${st}">${relText(d)}</small></div>`;};
+  let h=`<div class="summary-line"><span><b>${list.length}</b> ${state.f.archived?"archived":"active"} vehicle${list.length===1?"":"s"}</span><span>Sorted by ${({status:"status",reg:"registration",group:"group",rwExp:"roadworthy expiry",insExp:"insurance expiry",site:"site"})[s.key]}</span></div>`;
+  if(!list.length) return h+`<div class="empty"><h3>No matching vehicles</h3><p>Try a different search or filter, or switch between active and archived.</p><div class="actions"><button class="btn" data-act="clear">Clear filters</button></div></div>`;
+  h+=`<div class="tablewrap"><table><thead><tr>${th("reg","Vehicle")}${th("group","Group / site")}${th("rwExp","Roadworthy")}${th("insExp","Insurance")}${th("status","Status")}<th>Operating</th></tr></thead><tbody>
+    ${list.map(v=>`<tr data-open="${esc(v.id)}" tabindex="0"><td><span class="plate">${esc(v.reg)}</span><div class="fleetno" style="margin-top:4px">${esc(v.fleetNo||"No fleet no.")} · ${esc(v.model||"Model not recorded")}</div></td>
+      <td><b>${esc(v.group)}</b> <span class="muted">· ${esc(v.site||"—")}</span><div class="muted" style="font-size:12.5px">${esc(v.responsible||"No responsible person")}</div></td>
+      <td>${docCell(v.rwExp)}</td><td>${docCell(v.insExp)}</td><td><span class="chip s-${vehStatus(v)}">${STATUS_LABEL[vehStatus(v)]}</span></td><td>${opChip(v.op)}</td></tr>`).join("")}
+  </tbody></table></div>
+  <div class="cards">${list.map(v=>`<button class="vcard" data-open="${esc(v.id)}"><div class="row"><span><span class="plate">${esc(v.reg)}</span> <span class="fleetno">${esc(v.fleetNo)}</span></span><span class="chip s-${vehStatus(v)}">${STATUS_LABEL[vehStatus(v)]}</span></div>
+    <div class="muted" style="font-size:12.5px">${esc(groupName(v.group))} · ${esc(v.site)} · ${esc(v.op||"Active")}</div>
+    <dl><div><dt>Roadworthy</dt><dd>${docCell(v.rwExp)}</dd></div><div><dt>Insurance</dt><dd>${docCell(v.insExp)}</dd></div></dl></button>`).join("")}</div>`;
+  return h;
+}
+
+function viewRenewals(){
+  const items=renewalItems(data());
+  let h=header("Fleet compliance","Renewal queue","Overdue and unrecorded documents first, then everything expiring in the next 30 days. A vehicle can appear twice.",writeActions())+banners();
+  if(!state.loaded&&!state.demo) return h+loadingBlock();
+  if(!active().length) return h+emptyFleet();
+  if(!items.length) return h+`<div class="empty">${I.check.replace("<svg",'<svg width="40" height="40" style="color:var(--ok)"')}<h3>Nothing to renew</h3><p>Every document on the register is valid for more than ${WINDOW} days.</p></div>`+footer();
+  const lanes=[
+    ["Overdue","expired",x=>x.st==="expired","var(--bad)"],
+    ["Not recorded","missing",x=>x.st==="missing","var(--miss)"],
+    ["Due within 7 days","due",x=>x.st==="due"&&x.left<=7,"var(--due)"],
+    ["Due in 8 to 30 days","due",x=>x.st==="due"&&x.left>7,"var(--due)"],
+  ];
+  const canEdit=state.canWrite&&!state.demo&&state.dbState==="live";
+  lanes.forEach(([title,st,fn,col])=>{
+    const li=items.filter(fn); if(!li.length) return;
+    h+=`<section class="lane"><div class="lane-h"><h2>${title}</h2><span class="num">${li.length}</span></div>${li.map(x=>`<div class="ritem" style="--c:${col}"><span class="bar"></span>
+      <div><button class="link" style="color:var(--ink)" data-open="${esc(x.v.id)}"><span class="plate">${esc(x.v.reg)}</span></button> <span class="fleetno">${esc(x.v.fleetNo)}</span><div class="who">${esc(groupName(x.v.group))} · ${esc(x.v.site)}${x.v.responsible?` · ${esc(x.v.responsible)}`:""}</div></div>
+      <div class="doc"><b>${x.label}</b><span class="muted">${x.k==="rw"?(x.v.rwNo?"Cert. "+esc(x.v.rwNo):"No certificate number"):(x.v.insurer?esc(x.v.insurer):"No insurer recorded")}</span></div>
+      <div class="when">${x.st==="missing"?"No date":fmtDate(x.date)}<small>${relText(x.date)}</small></div>
+      <div class="btns">${canEdit?`<button class="btn sm primary" data-renew="${esc(x.v.id)}" data-kind="${x.k}">Record renewal</button>`:`<button class="btn sm" data-open="${esc(x.v.id)}">View</button>`}</div></div>`).join("")}</section>`;
+  });
+  return h+footer();
+}
+
+function viewActivity(){
+  let h=header("Fleet compliance","Activity log","Every change saved to the register, newest first, with who made it and what changed.","")+banners();
+  if(!state.loaded&&!state.demo) return h+loadingBlock();
+  const evs=activityList().slice(0,300);
+  if(!evs.length) return h+`<div class="empty"><h3>No changes yet</h3><p>Adding vehicles, recording renewals and archiving are all logged here automatically.</p></div>`;
+  h+=`<section class="panel"><div class="panel-h"><div><h2>Recent changes</h2><p>Latest ${evs.length} events · times in Ghana (GMT)</p></div></div><div class="feed">${evs.map(evHTML).join("")}</div></section>`;
+  return h+footer();
+}
+function evHTML(e){
+  const when=new Date(e.at); const ts=Number.isNaN(when.getTime())?"":when.toLocaleString("en-GB",{timeZone:"UTC",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  const ch=(e.changes||[]).slice(0,8).map(c=>`<li>${esc(FIELDS[c.f]||c.f)}: <del>${esc(fmtVal(c.f,c.from))}</del> → <ins>${esc(fmtVal(c.f,c.to))}</ins></li>`).join("");
+  return `<article class="ev"><span class="ic">${e.action.includes("renew")?I.check:e.action.includes("added")||e.action.includes("Imported")?I.plus:I.edit}</span><div>
+    <h3>${esc(e.action)} · ${findV(e.vehicleId)?`<button data-open="${esc(e.vehicleId)}">${esc(e.reg)}</button>`:`<span class="plate">${esc(e.reg)}</span>`}</h3>${ch?`<ul>${ch}</ul>`:""}
+    <div class="meta">${esc(e.by||"Someone")} · ${ts} GMT</div></div></article>`;
+}
+function fmtVal(f,v){ if(f==="archived") return v?"Archived":"Active"; if(DATE_FIELDS.has(f)) return v?fmtDate(v):"not recorded"; return v===""||v==null?"not recorded":String(v); }
+
+/* ───────── render ───────── */
+function render(){
+  $("#app").classList.toggle("locked", state.dbState==="signin" && !state.demo);
+  if(state.dbState==="signin" && !state.demo){ renderSignin(); return; }
+  renderNav();
+  const ae=document.activeElement, keepQ=ae&&ae.id==="q"?[ae.selectionStart,ae.selectionEnd]:null;
+  const c=$("#canvas");
+  c.innerHTML = state.view==="overview"?viewOverview():state.view==="register"?viewRegister():state.view==="renewals"?viewRenewals():viewActivity();
+  if(state.view==="register"&&$("#reg-results")) $("#reg-results").innerHTML=registerResults();
+  if(keepQ&&$("#q")){ const q=$("#q"); q.focus(); try{ q.setSelectionRange(keepQ[0],keepQ[1]); }catch{} }
+  const d=$("#dlg-detail"); if(d.open&&d.dataset.id) openDetail(d.dataset.id,true);
+}
+
+function renderSignin(){
+  const c=$("#canvas");
+  if($("#signin-form")) return;
+  c.innerHTML=`<div class="signin"><form id="signin-form" novalidate>
+    <div class="brand"><span class="brand-mark">RB</span><div><b style="color:var(--ink)">Rabotec</b><small style="color:var(--ink-3)">Fleet safety</small></div></div>
+    <div><h1>Staff sign in</h1><p style="margin-top:6px">Roadworthy and insurance register for the Abore and Esaase fleet.</p></div>
+    ${API_READY?"":`<div class="formerr">This copy isn't connected to its Google Sheet yet. Paste the Apps Script web app URL into API_URL in index.html. You can still preview it with sample vehicles.</div>`}
+    <div class="fld"><label for="si-name">Your name</label><input id="si-name" autocomplete="name" maxlength="60" required placeholder="e.g. Emmanuel Nyarko"><small>Shown against every change you make.</small></div>
+    <div class="fld"><label for="si-key">Access code</label><input id="si-key" type="password" autocomplete="current-password" required><small>Get this from the HSE office.</small></div>
+    <label class="remember"><input type="checkbox" id="si-remember" checked> Keep me signed in on this device</label>
+    <div class="formerr" id="si-err" hidden role="alert"></div>
+    <button class="btn primary" id="si-btn" style="justify-content:center" ${API_READY?"":"disabled"}>Sign in</button>
+    <button type="button" class="btn" data-act="demo-on" style="justify-content:center">Preview with a sample fleet</button>
+  </form></div>`;
+  const f=$("#signin-form");
+  f.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const name=$("#si-name").value.replace(/\s+/g," ").trim(), key=$("#si-key").value, err=$("#si-err");
+    err.hidden=true;
+    if(name.length<2){ err.textContent="Enter your name."; err.hidden=false; $("#si-name").focus(); return; }
+    if(!key){ err.textContent="Enter the access code."; err.hidden=false; $("#si-key").focus(); return; }
+    const btn=$("#si-btn"); btn.disabled=true; btn.textContent="Checking…";
+    state.session={name,key};
+    try{
+      const r=await api("ping");
+      state.session.role=r.role; if($("#si-remember").checked) store.set(state.session);
+      state.dbState="connecting"; render(); await refresh();
+      toast(r.role==="edit"?`Signed in as ${name}`:`Signed in as ${name} (view only)`);
+    }catch(ex){ state.session=null; err.textContent=ex.message; err.hidden=false; btn.disabled=false; btn.textContent="Sign in"; }
+  });
+  setTimeout(()=>$("#si-name").focus(),30);
+}
+
+/* ───────── detail drawer ───────── */
+function sticker(date,label){
+  const st=docStatus(date); const c={valid:"var(--ok)",due:"var(--due)",expired:"var(--bad)",missing:"var(--miss)"}[st], cs={valid:"var(--ok-soft)",due:"var(--due-soft)",expired:"var(--bad-soft)",missing:"var(--miss-soft)"}[st];
+  let inner="<b>—</b><small>NONE</small>"; if(date){const [y,m]=date.split("-"); inner=`<b>${MONTHS[+m-1].toUpperCase()}</b><small>${y}</small>`;}
+  return `<span class="sticker" style="--c:${c};--cs:${cs}" aria-label="${label} expiry ${fmtDate(date)}">${inner}</span>`;
+}
+function findV(id){ return data().find(v=>v.id===id); }
+function openDetail(id, refresh){
+  const v=findV(id); const dlg=$("#dlg-detail");
+  if(!v){ if(dlg.open) dlg.close(); return; }
+  const st=vehStatus(v), canEdit=state.canWrite&&!state.demo&&state.dbState==="live";
+  const hist=activityList().filter(e=>e.vehicleId===v.id);
+  dlg.dataset.id=id;
+  dlg.innerHTML=`<div class="dlg"><div class="dlg-h"><div><div class="eyebrow">${esc(groupName(v.group))} · ${esc(v.site)}</div><h2 style="margin-top:6px">${esc(v.reg)}</h2><p>${esc(v.fleetNo||"No fleet number")} · ${esc(v.model||"Model not recorded")}</p></div><button class="x" data-close aria-label="Close">${I.x}</button></div>
+  <div class="dlg-b">
+    <div class="dtop"><span class="chip s-${st}">${STATUS_LABEL[st]}</span>${opChip(v.op)}${v.archived?'<span class="chip op">Archived</span>':""}</div>
+    ${["expired","missing"].includes(st)&&!v.archived?`<div class="nodispatch">${I.stop}<span>Do not dispatch. ${[["Roadworthy",v.rwExp],["Insurance",v.insExp]].filter(([,d])=>["expired","missing"].includes(docStatus(d))).map(([n,d])=>`${n} ${docStatus(d)==="missing"?"not recorded":"expired "+fmtDate(d)}`).join("; ")}.</span></div>`:""}
+    <div class="discs">
+      <div class="disc">${sticker(v.rwExp,"Roadworthy")}<div class="info"><b>Roadworthy</b><span>${fmtDate(v.rwExp)} · <span class="t-${docStatus(v.rwExp)}">${relText(v.rwExp)}</span></span><span>${v.rwNo?"Cert. "+esc(v.rwNo):"No certificate number"}${v.rwIssue?" · issued "+fmtDate(v.rwIssue):""}</span>${canEdit?`<button class="link" data-renew="${esc(v.id)}" data-kind="rw">Record renewal</button>`:""}</div></div>
+      <div class="disc">${sticker(v.insExp,"Insurance")}<div class="info"><b>Insurance</b><span>${fmtDate(v.insExp)} · <span class="t-${docStatus(v.insExp)}">${relText(v.insExp)}</span></span><span>${esc(v.insurer||"No insurer")}${v.policyNo?" · "+esc(v.policyNo):""}</span>${canEdit?`<button class="link" data-renew="${esc(v.id)}" data-kind="ins">Record renewal</button>`:""}</div></div>
+    </div>
+    <dl class="kv"><div><dt>Responsible person</dt><dd>${esc(v.responsible||"Not recorded")}</dd></div><div><dt>Operating status</dt><dd>${esc(v.op||"Active")}</dd></div>
+      <div><dt>Site</dt><dd>${esc(v.site)}</dd></div><div><dt>Group</dt><dd>${esc(v.group)} · ${esc(groupName(v.group))}</dd></div>
+      ${v.notes?`<div style="grid-column:1/-1"><dt>Notes</dt><dd style="white-space:pre-wrap">${esc(v.notes)}</dd></div>`:""}</dl>
+    <div><div class="panel-h" style="margin-bottom:6px"><h2 style="font:600 17px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase">History</h2></div>
+      <div class="feed">${hist.length?hist.slice(0,30).map(evHTML).join(""):'<p class="muted">No saved history.</p>'}</div></div>
+  </div>
+  ${canEdit?`<div class="dlg-f"><button class="btn" data-archive="${esc(v.id)}">${v.archived?"Restore to register":"Archive vehicle"}</button><button class="btn primary" data-edit="${esc(v.id)}">${I.edit}Edit details</button></div>`:""}</div>`;
+  if(!refresh && !dlg.open) dlg.showModal();
+}
+
+/* ───────── add / edit ───────── */
+const BLANK={reg:"",fleetNo:"",group:"LV",site:"Abore Pit",op:"Active",model:"",responsible:"",rwNo:"",rwIssue:"",rwExp:"",insurer:"",policyNo:"",insExp:"",notes:"",archived:false};
+function fld(k,label,type,opts){
+  const o=opts||{}; const id="e-"+k;
+  if(type==="select") return `<div class="fld ${o.full?"full":""}"><label for="${id}">${label}</label><select id="${id}" name="${k}">${o.items.map(([val,l])=>`<option value="${esc(val)}">${esc(l)}</option>`).join("")}</select></div>`;
+  if(type==="textarea") return `<div class="fld full"><label for="${id}">${label}</label><textarea id="${id}" name="${k}" rows="2" maxlength="2000" placeholder="${esc(o.ph||"")}"></textarea></div>`;
+  return `<div class="fld ${o.full?"full":""}"><label for="${id}">${label}</label><input id="${id}" name="${k}" type="${type}" ${o.req?"required":""} maxlength="${type==="date"?10:120}" ${type==="date"?'max="2099-12-31" min="1990-01-01"':""} placeholder="${esc(o.ph||"")}" autocomplete="off"><span class="err" id="err-${k}" hidden></span>${o.hint?`<small>${o.hint}</small>`:""}</div>`;
+}
+function openEdit(id){
+  const v=id?findV(id):null; const draft={...BLANK,...(v||{})};
+  const dlg=$("#dlg-edit");
+  dlg.innerHTML=`<form class="dlg" id="edit-form" novalidate><div class="dlg-h"><div><h2>${v?"Edit "+esc(v.reg):"Add a vehicle"}</h2><p>${v?"Changes are logged with your name.":"Registration and group are required. Add document dates now or later; blanks are flagged as missing."}</p></div><button type="button" class="x" data-close aria-label="Close">${I.x}</button></div>
+  <div class="dlg-b"><div class="form">
+    ${fld("reg","Registration *","text",{req:true,ph:"e.g. GT 4821-22"})}
+    ${fld("fleetNo","Fleet / asset no.","text",{ph:"e.g. DT-103"})}
+    ${fld("group","Vehicle group *","select",{items:GROUPS.map(g=>[g.code,`${g.code} · ${g.name}`])})}
+    ${fld("site","Site *","select",{items:SITES.map(s=>[s,s])})}
+    ${fld("model","Make / model","text",{ph:"e.g. Sinotruk Howo 371"})}
+    ${fld("op","Operating status","select",{items:OPS.map(s=>[s,s])})}
+    ${fld("responsible","Responsible person","text",{full:true,ph:"Driver, operator or supervisor"})}
+    <div class="sect">Roadworthy certificate</div>
+    ${fld("rwNo","Certificate number","text")}
+    ${fld("rwIssue","Issue date","date")}
+    ${fld("rwExp","Expiry date","date")}
+    <div></div>
+    <div class="sect">Insurance</div>
+    ${fld("insurer","Insurer","text",{ph:"e.g. SIC Insurance"})}
+    ${fld("policyNo","Policy number","text")}
+    ${fld("insExp","Expiry date","date")}
+    <div></div>
+    ${fld("notes","Notes","textarea",{ph:"Renewal arrangements, DVLA booking, document location…"})}
+  </div><div class="formerr" id="form-err" hidden role="alert"></div></div>
+  <div class="dlg-f"><span class="grow">${v?`Revision ${v.rev||1}`:""}</span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary" id="save-btn">${I.check}Save vehicle</button></div></form>`;
+  const form=$("#edit-form");
+  Object.keys(BLANK).forEach(k=>{ if(form.elements[k]) form.elements[k].value=draft[k]??""; });
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const next={}; Object.keys(BLANK).forEach(k=>{ if(form.elements[k]) next[k]=String(form.elements[k].value||"").trim(); });
+    next.reg=normReg(next.reg); next.archived=v?!!v.archived:false;
+    const errs=validate(next, v&&v.id);
+    form.querySelectorAll(".err").forEach(s=>{s.hidden=true;s.textContent="";});
+    const fe=$("#form-err"); fe.hidden=true;
+    if(Object.keys(errs).length){ Object.entries(errs).forEach(([k,m])=>{const s=$("#err-"+k); if(s){s.textContent=m;s.hidden=false;} }); const first=form.elements[Object.keys(errs)[0]]; if(first) first.focus(); return; }
+    const btn=$("#save-btn"); btn.disabled=true; btn.textContent="Saving…";
+    try{
+      await saveVehicle(next, v, v?"Vehicle updated":"Vehicle added");
+      dlg.close(); toast(v?`${next.reg} updated`:`${next.reg} added to the register`);
+      if(v) openDetail(v.id);
+    }catch(err){ fe.textContent=err.message; fe.hidden=false; btn.disabled=false; btn.innerHTML=I.check+"Save vehicle"; }
+  });
+  dlg.showModal(); setTimeout(()=>form.elements.reg.focus(),30);
+}
+function validate(n, selfId){
+  const e={};
+  if(!n.reg) e.reg="Enter the registration number.";
+  else if(state.vehicles.some(x=>x.id!==selfId && regKey(x.reg)===regKey(n.reg))) e.reg="This registration is already on the register (check archived vehicles too).";
+  if(!GROUPS.some(g=>g.code===n.group)) e.group="Choose a vehicle group.";
+  ["rwIssue","rwExp","insExp"].forEach(k=>{ if(n[k] && !validISO(n[k])) e[k]="Enter a valid date."; });
+  if(!e.rwIssue&&!e.rwExp&&n.rwIssue&&n.rwExp&&n.rwIssue>n.rwExp) e.rwIssue="Issue date must be on or before the expiry date.";
+  if(n.rwIssue && !e.rwIssue && n.rwIssue>state.today) e.rwIssue="Issue date can't be in the future.";
+  return e;
+}
+
+/* ───────── writes (server checks the revision, so two people can't overwrite each other) ───────── */
+function payload(v){ const o={id:v.id||""}; Object.keys(BLANK).forEach(k=>o[k]=v[k]??BLANK[k]); o.archived=!!v.archived; return o; }
+async function saveVehicle(next, prev, action){
+  if(state.demo) throw new Error("The sample fleet can't be changed. Go back to the live register.");
+  let r;
+  try{ r=await api("save",{vehicle:payload({...next,id:prev?prev.id:""}), rev:prev?prev.rev:0, label:action}); }
+  catch(e){ if(e.code==="conflict"||e.code==="gone"||e.code==="duplicate") refresh(true); throw e; }
+  if(r.vehicle){ const i=state.vehicles.findIndex(x=>x.id===r.vehicle.id); if(i>=0) state.vehicles[i]=r.vehicle; else state.vehicles.push(r.vehicle); }
+  render();
+  refresh(true);
+  return r;
+}
+
+/* ───────── record renewal ───────── */
+function openRenew(id, kind){
+  const v=findV(id); if(!v) return;
+  const isRw=kind==="rw", cur=isRw?v.rwExp:v.insExp;
+  const suggested = cur && daysLeft(cur)>=-60 ? addDays(cur,365) : addDays(state.today,365);
+  const dlg=$("#dlg-renew");
+  dlg.innerHTML=`<form class="dlg" id="renew-form" novalidate><div class="dlg-h"><div><div class="eyebrow">${esc(v.reg)} · ${esc(v.fleetNo)}</div><h2 style="margin-top:6px">Record ${isRw?"roadworthy":"insurance"} renewal</h2><p>Current expiry: ${fmtDate(cur)} (${relText(cur)}).</p></div><button type="button" class="x" data-close aria-label="Close">${I.x}</button></div>
+  <div class="dlg-b"><div class="form">
+    ${isRw?`${fld("rwNo","New certificate number","text")}${fld("rwIssue","Issue date","date")}${fld("rwExp","New expiry date *","date",{req:true,hint:"Suggested: one year on. Check the sticker."})}`
+          :`${fld("insurer","Insurer","text")}${fld("policyNo","Policy number","text")}${fld("insExp","New expiry date *","date",{req:true,hint:"Suggested: one year on. Check the policy schedule."})}`}
+  </div><div class="formerr" id="renew-err" hidden role="alert"></div></div>
+  <div class="dlg-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary" id="renew-btn">${I.check}Save renewal</button></div></form>`;
+  const form=$("#renew-form");
+  if(isRw){ form.elements.rwNo.value=""; form.elements.rwIssue.value=state.today; form.elements.rwExp.value=suggested; }
+  else { form.elements.insurer.value=v.insurer||""; form.elements.policyNo.value=v.policyNo||""; form.elements.insExp.value=suggested; }
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const next={...v}; ["rwNo","rwIssue","rwExp","insurer","policyNo","insExp"].forEach(k=>{ if(form.elements[k]) next[k]=form.elements[k].value.trim(); });
+    const errBox=$("#renew-err"); const ek=isRw?"rwExp":"insExp";
+    const errs=validate(next,v.id); if(!next[ek]) errs[ek]="Enter the new expiry date."; else if(next[ek]<=(cur||"")) errs[ek]="The new expiry must be later than the current one.";
+    form.querySelectorAll(".err").forEach(s=>s.hidden=true);
+    const bad=Object.entries(errs).filter(([k])=>form.elements[k]);
+    if(bad.length){ bad.forEach(([k,m])=>{const s=$("#err-"+k); s.textContent=m; s.hidden=false;}); return; }
+    const btn=$("#renew-btn"); btn.disabled=true; btn.textContent="Saving…";
+    try{ await saveVehicle(next, v, isRw?"Roadworthy renewed":"Insurance renewed"); dlg.close(); toast(`${v.reg}: ${isRw?"roadworthy":"insurance"} now valid to ${fmtDate(next[ek])}`); }
+    catch(err){ errBox.textContent=err.message; errBox.hidden=false; btn.disabled=false; btn.innerHTML=I.check+"Save renewal"; }
+  });
+  dlg.showModal();
+}
+
+async function toggleArchive(id){
+  const v=findV(id); if(!v) return;
+  const next={...v, archived:!v.archived}; 
+  try{ await saveVehicle(next, v, v.archived?"Vehicle restored":"Vehicle archived"); toast(v.archived?`${v.reg} restored to the register`:`${v.reg} archived. Its history is kept.`); }
+  catch(err){ toast(err.message); }
+}
+
+/* ───────── CSV export / import ───────── */
+const CSV_COLS=[["reg","Registration"],["fleetNo","Fleet no."],["group","Group"],["site","Site"],["op","Operating status"],["model","Make / model"],["responsible","Responsible person"],["rwNo","Roadworthy certificate no."],["rwIssue","Roadworthy issue date"],["rwExp","Roadworthy expiry"],["insurer","Insurer"],["policyNo","Policy number"],["insExp","Insurance expiry"],["notes","Notes"]];
+async function exportCSV(template){
+  const list = template ? [] : (state.view==="register"?filtered():data());
+  const head=[...CSV_COLS.map(c=>c[1]), ...(template?[]:["Status","Archived"])];
+  const rows=[head, ...list.map(v=>[...CSV_COLS.map(([k])=>v[k]??""), STATUS_LABEL[vehStatus(v)], v.archived?"Yes":"No"])];
+  if(template) rows.push(["GT 0000-24","LV-001","LV","Abore Pit","Active","Toyota Hilux","Name","RW-12345","2026-01-15","2027-01-14","SIC Insurance","POL/2026/001","2027-03-31",""]);
+  const csv="﻿"+rows.map(r=>r.map(csvCell).join(",")).join("\r\n");
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const a=document.createElement("a"); a.href=url; a.download=template?"rabotec-fleet-import-template.csv":`rabotec-fleet-${state.demo?"sample-":""}${state.today}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000);
+  if(!template) toast(`${list.length} vehicle${list.length===1?"":"s"} exported`);
+}
+function mapGroup(s){
+  const t=String(s||"").toLowerCase();
+  if(!t) return null;
+  if(/\bad[ts]?\b|articulat/.test(t)) return "ADT";
+  if(/\blv|light/.test(t)) return "LV";
+  if(/\bdt|dump/.test(t)) return "DT";
+  if(/\bst\b|service|bowser|fuel|water/.test(t)) return "ST";
+  if(/\blb|lowbed|low bed|low-bed/.test(t)) return "LB";
+  return GROUPS.some(g=>g.code.toLowerCase()===t)?t.toUpperCase():null;
+}
+function mapSite(s){ const t=String(s||"").toLowerCase(); return t.includes("abore")?"Abore Pit":t.includes("esaase")||t.includes("esase")?"Esaase Pit":"Other"; }
+function mapOp(s){ const t=String(s||"").toLowerCase(); return t.includes("ground")?"Grounded":t.includes("maint")||t.includes("repair")||t.includes("workshop")?"Under maintenance":"Active"; }
+const HEAD_ALIASES={
+  reg:["registration","reg","plate","plate number","reg no","registration number","vehicle"],
+  fleetNo:["fleet no.","fleet no","asset id","asset","fleet number","asset no","fleet id"],
+  group:["group","category","vehicle group","type"],
+  site:["site","location","pit"],
+  op:["operating status","op status","vehicle status","operational status"],
+  model:["make / model","make/model","model","make"],
+  responsible:["responsible person","responsible","driver","operator"],
+  rwNo:["roadworthy certificate no.","certificate number","roadworthy cert no","roadworthy number","cert no","roadworthy cert. no."],
+  rwIssue:["roadworthy issue date","roadworthy issued","issue date"],
+  rwExp:["roadworthy expiry","roadworthy expiry date","roadworthy","rw expiry"],
+  insurer:["insurer","insurance provider","insurance company"],
+  policyNo:["policy number","policy no","policy"],
+  insExp:["insurance expiry","insurance expiry date","insurance","ins expiry"],
+  notes:["notes","remarks","comment","comments"],
+  archived:["archived"],
+};
+function analyseImport(text){
+  const rows=parseCSV(text); if(rows.length<2) return {error:"The file has no data rows. Use the template, or the CSV exported from the old tracker."};
+  const head=rows[0].map(h=>h.trim().toLowerCase());
+  const col={}; Object.entries(HEAD_ALIASES).forEach(([k,al])=>{ const i=head.findIndex(h=>al.includes(h)); if(i>=0) col[k]=i; });
+  if(col.reg===undefined) return {error:"No registration column found. The first row must be column headings, including \"Registration\"."};
+  const existing=new Map(state.vehicles.map(v=>[regKey(v.reg),v]));
+  const seen=new Set(); const out=[];
+  rows.slice(1).forEach((r,i)=>{
+    const get=k=>col[k]===undefined?"":String(r[col[k]]??"").trim();
+    const rec={reg:normReg(get("reg")),fleetNo:get("fleetNo"),group:mapGroup(get("group")),site:mapSite(get("site")),op:mapOp(get("op")),model:get("model"),responsible:get("responsible"),
+      rwNo:get("rwNo"),insurer:get("insurer"),policyNo:get("policyNo"),notes:get("notes").slice(0,2000),archived:/^(yes|true|1|archived)$/i.test(get("archived"))};
+    const problems=[];
+    if(!rec.reg) problems.push("no registration");
+    if(!rec.group) problems.push(get("group")?`unknown group "${get("group")}"`:"no group");
+    ["rwIssue","rwExp","insExp"].forEach(k=>{ const p=parseAnyDate(get(k)); if(p===null) problems.push(`${FIELDS[k].toLowerCase()} "${get(k)}" not a date`); rec[k]=p||""; });
+    const key=regKey(rec.reg);
+    if(rec.reg && seen.has(key)) problems.push("duplicate in file");
+    seen.add(key);
+    const match=existing.get(key);
+    out.push({line:i+2, rec, match, problems, kind: problems.length?"skip":match?"update":"new"});
+  });
+  return {rows:out};
+}
+function openImport(){
+  const dlg=$("#dlg-import");
+  const paint=(body,foot)=>{ dlg.innerHTML=`<div class="dlg"><div class="dlg-h"><div><h2>Import vehicles</h2><p>Bring in records from the old tracker's CSV export or from a spreadsheet saved as CSV.</p></div><button class="x" data-close aria-label="Close">${I.x}</button></div><div class="dlg-b">${body}</div><div class="dlg-f">${foot}</div></div>`; };
+  paint(`<label class="drop" id="drop" for="imp-file"><b>Choose a CSV file</b><span class="muted">or drop it here. Dates can be 2027-01-14, 14/01/2027 or 14 Jan 2027.</span><input id="imp-file" type="file" accept=".csv,text/csv" hidden></label>
+    <p class="muted" style="margin:0;font-size:13px">Vehicles are matched on registration. Matches are updated with any non-blank values in the file; new registrations are added. Nothing is deleted.</p>`,
+    `<button class="btn" data-act="template" style="margin-right:auto">${I.down}Download template</button><button class="btn" data-close>Cancel</button>`);
+  const input=$("#imp-file"), drop=$("#drop");
+  const handle=file=>{ if(!file) return; const rd=new FileReader(); rd.onload=()=>preview(String(rd.result)); rd.onerror=()=>toast("That file couldn't be read."); rd.readAsText(file); };
+  input.addEventListener("change",()=>handle(input.files[0]));
+  drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("over");});
+  drop.addEventListener("dragleave",()=>drop.classList.remove("over"));
+  drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("over");handle(e.dataTransfer.files[0]);});
+  function preview(text){
+    const a=analyseImport(text);
+    if(a.error){ paint(`<div class="formerr">${esc(a.error)}</div>`,`<button class="btn" data-act="import">Choose another file</button><button class="btn" data-close>Close</button>`); return; }
+    const n=a.rows.filter(r=>r.kind==="new"), u=a.rows.filter(r=>r.kind==="update"), s=a.rows.filter(r=>r.kind==="skip");
+    paint(`<div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="kpi ok" style="cursor:default"><span class="lbl">New</span><span class="val">${n.length}</span></div><div class="kpi due" style="cursor:default"><span class="lbl">Update</span><span class="val">${u.length}</span></div><div class="kpi bad" style="cursor:default"><span class="lbl">Skipped</span><span class="val">${s.length}</span></div></div>
+      <div class="tablewrap"><table class="mini"><thead><tr><th>Row</th><th>Registration</th><th>Group</th><th>Roadworthy</th><th>Insurance</th><th>Result</th></tr></thead><tbody>
+      ${a.rows.slice(0,200).map(r=>`<tr style="cursor:default"><td class="num">${r.line}</td><td><b>${esc(r.rec.reg||"—")}</b></td><td>${esc(r.rec.group||"—")}</td><td class="num">${r.rec.rwExp||"—"}</td><td class="num">${r.rec.insExp||"—"}</td><td>${r.kind==="skip"?`<span class="t-expired">Skipped: ${esc(r.problems.join(", "))}</span>`:r.kind==="update"?'<span class="t-due">Update existing</span>':'<span class="t-valid">Add new</span>'}</td></tr>`).join("")}
+      </tbody></table></div><div id="imp-prog" hidden><div class="progress"><span style="width:0%"></span></div><p class="muted" id="imp-msg" style="margin:6px 0 0"></p></div>`,
+      `<span class="grow">${s.length?"Fix skipped rows in the file and import again to add them.":""}</span><button class="btn" data-close>Cancel</button><button class="btn primary" id="imp-go" ${n.length+u.length?"":"disabled"}>Import ${n.length+u.length} vehicle${n.length+u.length===1?"":"s"}</button>`);
+    $("#imp-go").addEventListener("click",()=>runImport([...n,...u]));
+  }
+  async function runImport(list){
+    const go=$("#imp-go"); go.disabled=true; $("#imp-prog").hidden=false;
+    const items=list.map(({rec,match})=>{
+      if(match){
+        const cur=state.vehicles.find(v=>v.id===match.id)||match; const next={...cur};
+        Object.entries(rec).forEach(([k,val])=>{ if(k==="archived") return; if(k==="op"||k==="site"){ if(val&&val!=="Other"&&val!=="Active") next[k]=val; return; } if(val!=="") next[k]=val; });
+        return {vehicle:payload(next), rev:cur.rev, label:"Updated by import"};
+      }
+      return {vehicle:payload({...BLANK,...rec,id:""}), rev:0, label:"Imported"};
+    });
+    let ok=0, fail=0; const fails=[];
+    for(let i=0;i<items.length;i+=25){
+      const chunk=items.slice(i,i+25);
+      try{ const r=await api("saveMany",{items:chunk}); r.results.forEach(x=>{ if(x.ok) ok++; else { fail++; fails.push(`${x.reg||"?"}: ${x.error}`); } }); }
+      catch(e){ fail+=chunk.length; fails.push(e.message); if(e.code==="auth") return; }
+      $("#imp-prog .progress span").style.width=(Math.min(items.length,i+25)/items.length*100)+"%";
+      $("#imp-msg").textContent=`${Math.min(items.length,i+25)} of ${items.length} processed${fail?` · ${fail} failed`:""}`;
+    }
+    if(fails.length) $("#imp-msg").textContent+=` — ${fails.slice(0,3).join("; ")}${fails.length>3?"…":""}`;
+    toast(`Import finished: ${ok} saved${fail?`, ${fail} failed`:""}`);
+    await refresh(true);
+    go.replaceWith(Object.assign(document.createElement("button"),{className:"btn primary",textContent:"Close",onclick:()=>dlg.close()}));
+  }
+  if(!dlg.open) dlg.showModal();
+}
+
+/* ───────── help ───────── */
+function openHelp(){
+  const dlg=$("#dlg-help");
+  dlg.innerHTML=`<div class="dlg"><div class="dlg-h"><div><h2>How statuses work</h2><p>Each vehicle takes the worst status of its two documents.</p></div><button class="x" data-close aria-label="Close">${I.x}</button></div><div class="dlg-b" style="gap:12px">
+    <p style="margin:0"><span class="chip s-expired">Expired</span> A roadworthy certificate or insurance date has passed. The vehicle must not be dispatched until renewed.</p>
+    <p style="margin:0"><span class="chip s-missing">Missing</span> A document date hasn't been entered. Treat as not road-legal until the document is checked and recorded.</p>
+    <p style="margin:0"><span class="chip s-due">Due soon</span> A document expires today or within the next ${WINDOW} days. Book the DVLA test or insurance renewal now.</p>
+    <p style="margin:0"><span class="chip s-valid">Valid</span> Both documents run for more than ${WINDOW} more days.</p>
+    <p style="margin:0" class="muted">Dates use Ghana time (GMT). Every save records who made it and what changed, in the vehicle's history and the activity log. If two people edit the same vehicle at once, the second save is stopped so nothing is overwritten. Archive vehicles that leave the fleet; their history is kept.</p>
+  </div></div>`;
+  dlg.showModal();
+}
+
+/* ───────── events ───────── */
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button,[data-open],a"); if(!t) return;
+  if(t.hasAttribute("data-close")){ t.closest("dialog").close(); return; }
+  if(t.dataset.go){ const f={}; if(t.dataset.group) f.group=t.dataset.group; if(t.dataset.status) f.status=t.dataset.status; closeAll(); go(t.dataset.go,f); return; }
+  if(t.dataset.open){ openDetail(t.dataset.open); return; }
+  if(t.dataset.edit){ openEdit(t.dataset.edit); return; }
+  if(t.dataset.renew){ openRenew(t.dataset.renew,t.dataset.kind); return; }
+  if(t.dataset.archive){ toggleArchive(t.dataset.archive); return; }
+  if(t.dataset.sort){ const k=t.dataset.sort; state.sort = state.sort.key===k?{key:k,dir:-state.sort.dir}:{key:k,dir:1}; $("#reg-results").innerHTML=registerResults(); return; }
+  if(t.dataset.arch!==undefined){ state.f.archived=t.dataset.arch==="1"; render(); return; }
+  const a=t.dataset.act;
+  if(a==="add") openEdit(null);
+  else if(a==="import") openImport();
+  else if(a==="export") exportCSV(false);
+  else if(a==="template") exportCSV(true);
+  else if(a==="help") openHelp();
+  else if(a==="demo-on"){ state.demo=true; render(); }
+  else if(a==="demo-off"){ state.demo=false; closeAll(); render(); }
+  else if(a==="refresh"){ refresh(false).then(()=>{ if(state.dbState==="live") toast("Register up to date"); }); }
+  else if(a==="signout"){ signOut(false); }
+  else if(a==="clear"){ go("register"); }
+});
+document.addEventListener("keydown",e=>{ if(e.key==="Enter"){ const tr=e.target.closest&&e.target.closest("tr[data-open]"); if(tr) openDetail(tr.dataset.open); } });
+document.addEventListener("input",e=>{ if(e.target.id==="q"){ state.f.q=e.target.value; $("#reg-results").innerHTML=registerResults(); } });
+document.addEventListener("change",e=>{
+  const m={"f-group":"group","f-site":"site","f-status":"status"}[e.target.id];
+  if(m){ state.f[m]=e.target.value; if(m==="group") renderNav(); $("#reg-results").innerHTML=registerResults(); }
+});
+function closeAll(){ document.querySelectorAll("dialog[open]").forEach(d=>d.close()); }
+setInterval(()=>{ const t=todayISO(); if(t!==state.today){ state.today=t; render(); } },60000);
+
+/* ───────── boot ───────── */
+state.session = API_READY ? store.get() : null;
+if(state.session){ state.dbState="connecting"; render(); refresh(false); }
+else { state.dbState="signin"; render(); }
+setInterval(()=>{ if(document.visibilityState==="visible" && state.session && !state.demo && !document.querySelector("dialog[open]")) refresh(true); }, REFRESH_MS);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && state.session && state.syncedAt && Date.now()-state.syncedAt>REFRESH_MS) refresh(true); });
+})();
+</script>
+</body>
+</html>
