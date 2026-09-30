@@ -1,5 +1,5 @@
 /**
- * Rabotec Fleet Safety — Google Apps Script backend (v2: personal accounts)
+ * Rabotec DVLA & Insurance Register — Google Apps Script backend (v2: personal accounts)
  * ------------------------------------------------------------
  * Stores the vehicle register in a Google Sheet and serves it to the
  * GitHub Pages front end (index.html). Everyone signs in with their own
@@ -24,7 +24,7 @@ const SETTINGS = {
   // Daily expiry email (07:00 GMT). Comma-separated addresses, or '' for none.
   ALERT_EMAILS: '',
   // Link used in emails so people can open the app.
-  APP_URL: 'https://solutionwealth.github.io/rabotec-fleet-safety/',
+  APP_URL: 'https://solutionwealth.github.io/rabotec-dvla-insurance-register/',
   // ID of the Google Sheet that holds the register (from its link). Leave '' if this script was opened from the Sheet.
   SHEET_ID: '',
   // How long a sign-in lasts on a device before the person must sign in again.
@@ -62,7 +62,7 @@ const MIN_PASSWORD = 8;
 
 /* ---------------- web entry points ---------------- */
 function doGet() {
-  return json_({ ok: true, app: 'Rabotec Fleet Safety API', message: 'Backend is running. Open the app page to use it.' });
+  return json_({ ok: true, app: 'Rabotec DVLA & Insurance Register API', message: 'Backend is running. Open the app page to use it.' });
 }
 
 function doPost(e) {
@@ -185,7 +185,7 @@ function requestCode_(rawEmail) {
   writeUser_(ref);
   MailApp.sendEmail({
     to: email,
-    subject: 'Your Rabotec Fleet Safety code: ' + code,
+    subject: 'Your Rabotec DVLA & Insurance Register code: ' + code,
     htmlBody: mailWrap_('<p>Your code is</p><p style="font-size:28px;font-weight:700;letter-spacing:6px;color:#164C9D;margin:8px 0">' + code +
       '</p><p>Enter it in the app to set your password. It expires in ' + CODE_MINUTES + ' minutes.</p>' +
       '<p style="color:#666">If you did not ask for this, ignore this email. Nobody can sign in without the code.</p>'),
@@ -300,8 +300,8 @@ function userSave_(me, rawEmail, name, role, invite) {
   if (created && invite !== false) {
     MailApp.sendEmail({
       to: email,
-      subject: 'You have been given access to Rabotec Fleet Safety',
-      htmlBody: mailWrap_('<p>' + esc_(me.name || me.email) + ' has added you to the Rabotec Fleet Safety register as <b>' + role + '</b>.</p>' +
+      subject: 'You have been given access to the Rabotec DVLA & Insurance Register',
+      htmlBody: mailWrap_('<p>' + esc_(me.name || me.email) + ' has added you to the Rabotec DVLA & Insurance Register as <b>' + role + '</b>.</p>' +
         '<p><a href="' + esc_(SETTINGS.APP_URL) + '" style="display:inline-block;background:#164C9D;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:600">Open the app</a></p>' +
         '<p>Choose <b>First time or forgot password</b>, enter this email address (' + esc_(email) + '), and we will send you a code to create your password.</p>'),
     });
@@ -330,7 +330,7 @@ function userRemove_(me, rawEmail) {
 }
 function mailWrap_(inner) {
   return '<div style="font-family:Arial,sans-serif;font-size:14px;color:#19232B;max-width:520px">' +
-    '<div style="background:#164C9D;color:#fff;padding:12px 16px;border-radius:6px 6px 0 0;font-weight:700;letter-spacing:.04em">RABOTEC · FLEET SAFETY</div>' +
+    '<div style="background:#164C9D;color:#fff;padding:12px 16px;border-radius:6px 6px 0 0;font-weight:700;letter-spacing:.04em">RABOTEC · DVLA &amp; INSURANCE REGISTER</div>' +
     '<div style="border:1px solid #d6dbe3;border-top:0;padding:16px;border-radius:0 0 6px 6px">' + inner + '</div></div>';
 }
 function esc_(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
@@ -474,7 +474,7 @@ function sendExpiryDigest() {
     subject: 'Rabotec fleet: ' + (bad ? bad + ' not road-legal, ' : '') + items.length + ' document' + (items.length === 1 ? '' : 's') + ' need attention',
     htmlBody: mailWrap_('<p>Documents expired, missing or due within ' + WINDOW_DAYS + ' days as of ' + today + ' (GMT). Vehicles with an expired or missing document must not be dispatched.</p>' +
       '<table style="border-collapse:collapse"><tr style="background:#eef1f6"><th align="left" style="padding:6px 10px">Vehicle</th><th align="left" style="padding:6px 10px">Site</th><th align="left" style="padding:6px 10px">Document</th><th align="left" style="padding:6px 10px">Expiry</th><th align="left" style="padding:6px 10px">Status</th></tr>' +
-      rowsHtml + '</table><p><a href="' + esc_(SETTINGS.APP_URL) + '">Open Rabotec Fleet Safety</a></p>'),
+      rowsHtml + '</table><p><a href="' + esc_(SETTINGS.APP_URL) + '">Open the Rabotec DVLA &amp; Insurance Register</a></p>'),
   });
 }
 

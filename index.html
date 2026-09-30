@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#164C9D">
-<title>Rabotec Fleet Safety</title>
+<meta name="description" content="Rabotec DVLA roadworthy certificate and vehicle insurance register for the Abore and Esaase fleet.">
+<title>Rabotec DVLA &amp; Insurance Register</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23164C9D'/%3E%3Crect y='26' width='32' height='6' fill='%23F7941D'/%3E%3Ctext x='16' y='20' font-family='Arial' font-weight='700' font-size='14' text-anchor='middle' fill='%23fff'%3ERB%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -72,6 +73,8 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100%}
 .rail{background:var(--rail);color:var(--rail-ink);padding:20px 14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:env(safe-area-inset-top,0px);height:100vh;overflow:auto}
 .brand{display:flex;align-items:center;gap:10px;padding:0 6px}
+.rail .brand{flex-direction:column;align-items:flex-start;gap:8px}
+.rail .brand small{font-size:11.5px;letter-spacing:.12em}
 .brand-logo{display:inline-flex;align-items:center;background:#fff;border-radius:7px;padding:4px 6px;flex:none}
 .brand-logo img{display:block;height:26px;width:auto}
 .brand-logo.fallback img{display:none}
@@ -360,14 +363,14 @@ dialog.drawer{margin:0 0 0 auto;height:100vh;max-height:100vh;border-radius:14px
 
 <div class="app" id="app">
   <aside class="rail" aria-label="Main navigation">
-    <div class="brand"><span class="brand-logo"><img src="https://rabotecgroup.com/images/header/160x40-px-logo.jpg" alt="Rabotec" width="104" height="26" onerror="this.parentNode.classList.add('fallback')"></span><div><small style="margin-top:0">Fleet safety</small></div></div>
+    <div class="brand"><span class="brand-logo"><img src="https://rabotecgroup.com/images/header/160x40-px-logo.jpg" alt="Rabotec" width="104" height="26" onerror="this.parentNode.classList.add('fallback')"></span><div><small style="margin-top:0">DVLA &amp; Insurance Register</small></div></div>
     <nav class="nav" id="nav-main"></nav>
     <nav class="nav" id="nav-groups"></nav>
     <div class="rail-foot" id="rail-foot"></div>
   </aside>
   <div class="main">
     <header class="topbar">
-      <div class="brand"><span class="brand-logo"><img src="https://rabotecgroup.com/images/header/160x40-px-logo.jpg" alt="Rabotec" width="104" height="26" onerror="this.parentNode.classList.add('fallback')"></span><div><small style="margin-top:0">Fleet safety</small></div></div>
+      <div class="brand"><span class="brand-logo"><img src="https://rabotecgroup.com/images/header/160x40-px-logo.jpg" alt="Rabotec" width="104" height="26" onerror="this.parentNode.classList.add('fallback')"></span><div><small style="margin-top:0">DVLA &amp; Insurance Register</small></div></div>
       <nav class="tabs" id="tabs"></nav>
     </header>
     <main class="canvas" id="canvas">
@@ -846,8 +849,8 @@ function renderSignin(force){
     <button class="btn primary" id="si-btn" style="justify-content:center">Save password and sign in</button>
     <button type="button" class="link" data-si="code" style="align-self:center">Send a new code</button>`;
   c.innerHTML=`<div class="signin"><form id="signin-form" novalidate>
-    <div class="brand"><span class="brand-logo" style="box-shadow:0 0 0 1px var(--line)"><img src="https://rabotecgroup.com/images/header/160x40-px-logo.jpg" alt="Rabotec" width="104" height="26" onerror="this.parentNode.classList.add('fallback')"></span><div><small style="margin-top:0;color:var(--ink-3)">Fleet safety</small></div></div>
-    <div><h1>${mode==="login"?"Staff sign in":mode==="code"?"Get a sign-in code":"Create your password"}</h1><p style="margin-top:6px">Roadworthy and insurance register for the Abore and Esaase fleet.</p></div>
+    <div class="brand"><span class="brand-logo" style="box-shadow:0 0 0 1px var(--line)"><img src="https://rabotecgroup.com/images/header/160x40-px-logo.jpg" alt="Rabotec" width="104" height="26" onerror="this.parentNode.classList.add('fallback')"></span><div><small style="margin-top:0;color:var(--ink-3)">DVLA &amp; Insurance Register</small></div></div>
+    <div><h1>${mode==="login"?"Staff sign in":mode==="code"?"Get a sign-in code":"Create your password"}</h1><p style="margin-top:6px">DVLA roadworthy certificates and vehicle insurance for the Abore and Esaase fleet.</p></div>
     ${API_READY?"":`<div class="formerr">This copy isn't connected to its Google Sheet yet. Paste the Apps Script web app URL into API_URL in index.html. You can still preview it with sample vehicles.</div>`}
     ${tabs}${body}
     <button type="button" class="btn" data-act="demo-on" style="justify-content:center">Preview with a sample fleet</button>
@@ -1086,7 +1089,7 @@ async function exportCSV(template){
   if(template) rows.push(["GT 0000-24","LV-001","LV","Abore Pit","Active","Toyota Hilux","Name","RW-12345","2026-01-15","2027-01-14","SIC Insurance","POL/2026/001","2027-03-31",""]);
   const csv="﻿"+rows.map(r=>r.map(csvCell).join(",")).join("\r\n");
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-  const a=document.createElement("a"); a.href=url; a.download=template?"rabotec-fleet-import-template.csv":`rabotec-fleet-${state.demo?"sample-":""}${state.today}.csv`;
+  const a=document.createElement("a"); a.href=url; a.download=template?"rabotec-dvla-insurance-import-template.csv":`rabotec-dvla-insurance-register-${state.demo?"sample-":""}${state.today}.csv`;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000);
   if(!template) toast(`${list.length} vehicle${list.length===1?"":"s"} exported`);
 }

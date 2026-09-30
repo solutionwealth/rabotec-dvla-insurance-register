@@ -1,10 +1,10 @@
-# Rabotec Fleet Safety — setup and administration
+# Rabotec DVLA & Insurance Register — setup and administration
 
 The app has three parts:
 
-- **`index.html`**: the web page, hosted by GitHub Pages at https://solutionwealth.github.io/rabotec-fleet-safety/
-- **`Code.gs`**: the Google Apps Script backend (project **Rabotec Fleet Safety API** on script.google.com, account nyarko.emmanuel.va@gmail.com)
-- **The Google Sheet "Rabotec Fleet Safety Register"**, which has three tabs:
+- **`index.html`**: the web page, hosted by GitHub Pages at https://solutionwealth.github.io/rabotec-dvla-insurance-register/
+- **`Code.gs`**: the Google Apps Script backend (project **Rabotec DVLA & Insurance Register API** on script.google.com, account nyarko.emmanuel.va@gmail.com)
+- **The Google Sheet "Rabotec DVLA & Insurance Register"**, which has three tabs:
   - **Vehicles**: one row per vehicle
   - **Activity**: every change, and who made it
   - **Users**: who can sign in
