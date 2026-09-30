@@ -22,7 +22,9 @@ const SETTINGS = {
   // Daily expiry email (07:00 GMT). Comma-separated addresses, or '' for none.
   ALERT_EMAILS: '',
   // Link included in the daily email so people can open the app.
-  APP_URL: 'https://YOUR-GITHUB-USERNAME.github.io/rabotec-fleet-safety/',
+  APP_URL: 'https://solutionwealth.github.io/rabotec-fleet-safety/',
+  // ID of the Google Sheet that holds the register (from its link). Leave '' if this script was opened from the Sheet.
+  SHEET_ID: '',
 };
 /* ========================================================== */
 
@@ -233,7 +235,7 @@ function setupDailyEmail() {
 /* ---------------- one-time setup ---------------- */
 /** Run once from the Apps Script editor. Creates and formats the two tabs. */
 function setup() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = book_();
   [[VEH_SHEET, HEADINGS, COLS], [ACT_SHEET, ACT_HEADINGS, ACT_COLS]].forEach(([name, heads]) => {
     let sh = ss.getSheetByName(name);
     if (!sh) sh = ss.insertSheet(name);
@@ -246,8 +248,14 @@ function setup() {
 }
 
 /* ---------------- helpers ---------------- */
+function book_() {
+  if (SETTINGS.SHEET_ID) return SpreadsheetApp.openById(SETTINGS.SHEET_ID);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw err_('Set SHEET_ID in Code.gs to the ID of the register Sheet.', 'setup');
+  return ss;
+}
 function sheet_(name) {
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  const sh = book_().getSheetByName(name);
   if (!sh) throw err_('The "' + name + '" tab is missing. Run setup() in Apps Script.', 'setup');
   return sh;
 }
